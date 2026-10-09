@@ -1,5 +1,7 @@
 # Dockerfile for crm app
-FROM node:20-bullseye AS base
+# FROM node:20-bullseye AS base
+FROM node:20-bookworm AS base
+
 WORKDIR /app
 
 # Install turbo
