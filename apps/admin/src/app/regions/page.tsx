@@ -16,16 +16,17 @@ import {
   DialogTitle,
 } from "@repo/ui/dialog";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
-import { 
-  useGetRegionsQuery, 
-  useCreateRegionMutation, 
-  useUpdateRegionMutation, 
-  useDeleteRegionMutation 
+import {
+  useGetRegionsQuery,
+  useCreateRegionMutation,
+  useUpdateRegionMutation,
+  useDeleteRegionMutation
 } from "@repo/store/services/api";
+import { toast } from "sonner";
 
-const RegionMapEditor = dynamic(() => import("../../components/RegionMapEditor"), { 
+const RegionMapEditor = dynamic(() => import("../../components/RegionMapEditor"), {
   loading: () => <div className="h-[400px] flex items-center justify-center bg-gray-100 rounded-lg"><Loader2 className="animate-spin" /> Map Loading...</div>,
-  ssr: false 
+  ssr: false
 });
 
 type Region = {
@@ -42,10 +43,10 @@ type Region = {
 export default function RegionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRegion, setEditingRegion] = useState<Region | null>(null);
-  const [formData, setFormData] = useState({ 
-    name: "", 
-    code: "", 
-    description: "", 
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    description: "",
     geometry: null,
     cities: "",
     states: ""
@@ -61,9 +62,9 @@ export default function RegionsPage() {
   const handleOpenModal = (region?: Region) => {
     if (region) {
       setEditingRegion(region);
-      setFormData({ 
-        name: region.name, 
-        code: region.code, 
+      setFormData({
+        name: region.name,
+        code: region.code,
         description: region.description || "",
         geometry: region.geometry || null,
         cities: region.cities ? region.cities.join(", ") : "",
@@ -71,10 +72,10 @@ export default function RegionsPage() {
       });
     } else {
       setEditingRegion(null);
-      setFormData({ 
-        name: "", 
-        code: "", 
-        description: "", 
+      setFormData({
+        name: "",
+        code: "",
+        description: "",
         geometry: null,
         cities: "",
         states: ""
@@ -100,12 +101,15 @@ export default function RegionsPage() {
 
       if (editingRegion) {
         await updateRegion({ id: editingRegion._id, ...payload }).unwrap();
+        toast.success("Region updated successfully");
       } else {
         await createRegion(payload).unwrap();
+        toast.success("Region created successfully");
       }
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save region:", error);
+      toast.error(error?.data?.error || error?.data?.message || "Failed to save region");
     }
   };
 
@@ -113,8 +117,10 @@ export default function RegionsPage() {
     if (confirm("Are you sure you want to delete this region?")) {
       try {
         await deleteRegion(id).unwrap();
-      } catch (error) {
+        toast.success("Region deleted successfully");
+      } catch (error: any) {
         console.error("Failed to delete region:", error);
+        toast.error(error?.data?.error || error?.data?.message || "Failed to delete region");
       }
     }
   };
@@ -208,7 +214,7 @@ export default function RegionsPage() {
                 Define region boundaries used for automatic vendor assignment.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 py-4">
               <div className="lg:col-span-4 space-y-5">
                 <div className="space-y-2">
@@ -253,14 +259,14 @@ export default function RegionsPage() {
                   </ul>
                 </div>
               </div>
-              
+
               <div className="lg:col-span-8 space-y-2">
                 <Label className="text-sm font-semibold">Geospatial Boundary</Label>
                 <div className="border-2 border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-50 relative group" style={{ height: '550px' }}>
-                   <RegionMapEditor 
-                      initialGeometry={formData.geometry} 
-                      onChange={(geom) => setFormData(prev => ({ ...prev, geometry: geom }))} 
-                   />
+                  <RegionMapEditor
+                    initialGeometry={formData.geometry}
+                    onChange={(geom) => setFormData(prev => ({ ...prev, geometry: geom }))}
+                  />
                 </div>
               </div>
             </div>

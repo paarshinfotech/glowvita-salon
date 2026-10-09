@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import _db from "@repo/lib/db";
 import RegionModel from "@repo/lib/models/admin/Region";
+import AdminUserModel from "@repo/lib/models/admin/AdminUser";
 import { authMiddlewareAdmin } from "../../../../middlewareAdmin";
 import { hasPermission, forbiddenResponse } from "@repo/lib";
 
@@ -48,9 +49,9 @@ export const POST = authMiddlewareAdmin(async (req) => {
       return NextResponse.json({ success: false, error: "Name and code are required" }, { status: 400 });
     }
 
-    const newRegion = await RegionModel.create({ 
-      name, 
-      code, 
+    const newRegion = await RegionModel.create({
+      name,
+      code,
       description,
       geometry,
       cities,
@@ -87,3 +88,49 @@ export const PUT = authMiddlewareAdmin(async (req) => {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }, ["SUPER_ADMIN", "REGIONAL_ADMIN", "STAFF"], "regions:edit");
+
+// DELETE region
+export const DELETE = authMiddlewareAdmin(async (req) => {
+  try {
+    await _db();
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get("id");
+
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body?.id || body?._id;
+      } catch (_) { }
+    }
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Region ID is required" }, { status: 400 });
+    }
+
+    const deletedRegion = await RegionModel.findByIdAndDelete(id);
+
+    if (!deletedRegion) {
+      return NextResponse.json({ success: false, error: "Region not found" }, { status: 404 });
+    }
+
+    // Clean up any assigned region references in Admin users
+    try {
+      await AdminUserModel.updateMany(
+        { assignedRegions: id },
+        { $pull: { assignedRegions: id } }
+      );
+    } catch (cleanupErr) {
+      console.warn("Failed to clean up assignedRegions in AdminUserModel:", cleanupErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Region deleted successfully",
+      data: deletedRegion
+    });
+  } catch (error) {
+    console.error("DELETE Region Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}, ["SUPER_ADMIN", "REGIONAL_ADMIN", "STAFF"], "regions:delete");
+
