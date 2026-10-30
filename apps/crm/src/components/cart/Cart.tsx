@@ -3,7 +3,7 @@
 
 import { Button } from '@repo/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@repo/ui/dialog';
-import { X, ShoppingCart, Plus, Minus, Trash2, CreditCard, Smartphone, Landmark } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Trash2, CreditCard, Smartphone, Landmark, Banknote, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { useGetCartQuery, useUpdateCartItemMutation, useRemoveFromCartMutation, useCreateCrmOrderMutation } from '@repo/store/api';
 import { useCrmAuth } from '@/hooks/useCrmAuth';
@@ -41,6 +41,8 @@ interface CartProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type PaymentMethod = 'online' | 'cod';
 
 // Load Razorpay script dynamically
 const loadRazorpayScript = (): Promise<boolean> =>
@@ -92,6 +94,7 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [shippingAddress, setShippingAddress] = useState(user?.address || '');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('online');
   const [createOrder] = useCreateCrmOrderMutation();
 
   const subtotal = cartItems.reduce((acc: number, item: CartItem) => acc + item.price * item.quantity, 0);
@@ -162,6 +165,46 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
     [cartItems, createOrder, shippingAddress, user?._id]
   );
 
+  /** Creates COD orders for each supplier — no Razorpay involved. */
+  const placeOrdersWithCOD = useCallback(async () => {
+    const ordersBySupplier = cartItems.reduce(
+      (acc: Record<string, OrderItem[]>, item: CartItem) => {
+        const supplierId =
+          typeof item.vendorId === 'object' && (item.vendorId as any)._id
+            ? (item.vendorId as any)._id
+            : item.vendorId;
+        if (!acc[supplierId]) acc[supplierId] = [];
+        acc[supplierId].push({
+          productId: item.productId,
+          productName: item.productName,
+          productImage: item.productImage,
+          quantity: item.quantity,
+          price: item.price,
+        });
+        return acc;
+      },
+      {} as Record<string, OrderItem[]>
+    );
+
+    const orderPromises = Object.entries(ordersBySupplier).map(([supplierId, items]) => {
+      const totalAmount = items.reduce(
+        (sum: number, item: OrderItem) => sum + item.price * item.quantity,
+        0
+      );
+      return createOrder({
+        items,
+        supplierId,
+        totalAmount,
+        shippingAddress,
+        vendorId: user?._id,
+        paymentMethod: 'cod',
+        paymentStatus: 'pending',
+      }).unwrap();
+    });
+
+    await Promise.all(orderPromises);
+  }, [cartItems, createOrder, shippingAddress, user?._id]);
+
   /** Clears cart from DB and Redux after a successful order. */
   const clearCartAfterOrder = useCallback(async () => {
     const removePromises = cartItems.map((item) => removeFromCart(item.productId).unwrap().catch(() => {}));
@@ -170,33 +213,59 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
     await refetch();
   }, [cartItems, removeFromCart, dispatch, refetch]);
 
-  const handlePlaceOrder = async () => {
+  /** Validates common pre-checkout conditions. Returns false if invalid. */
+  const validateCheckout = () => {
     if (!shippingAddress.trim()) {
       toast.error('Shipping address is required.');
-      return;
+      return false;
     }
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) return false;
 
     // Minimum order validation (dynamic per supplier)
     const ordersBySupplier = cartItems.reduce((acc: Record<string, { total: number; name: string; minOrder: number }>, item: CartItem) => {
-      const supplierId = typeof item.vendorId === 'object' && (item.vendorId as any)._id 
-        ? (item.vendorId as any)._id 
+      const supplierId = typeof item.vendorId === 'object' && (item.vendorId as any)._id
+        ? (item.vendorId as any)._id
         : item.vendorId;
-      
+
       if (!acc[supplierId]) acc[supplierId] = { total: 0, name: item.supplierName || 'Supplier', minOrder: item.minOrderValue || 1000 };
       acc[supplierId].total += item.price * item.quantity;
       return acc;
     }, {});
 
     const lowValueSuppliers = Object.values(ordersBySupplier).filter(s => s.total < s.minOrder);
-    
+
     if (lowValueSuppliers.length > 0) {
       const issues = lowValueSuppliers.map(s => `${s.name}: min ₹${s.minOrder.toLocaleString()}`).join(', ');
       toast.error(`One or more suppliers have a minimum order requirement.`, {
         description: `Issues: ${issues}. Please add more items to proceed.`,
       });
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  /** Handle COD order placement */
+  const handleCODOrder = async () => {
+    if (!validateCheckout()) return;
+
+    setIsProcessingPayment(true);
+    try {
+      await placeOrdersWithCOD();
+      await clearCartAfterOrder();
+      setIsCheckoutModalOpen(false);
+      toast.success('Order placed successfully! Pay on delivery.');
+    } catch (error: any) {
+      console.error('COD order error:', error);
+      toast.error(error?.data?.message || error?.message || 'Failed to place order. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  /** Handle Online payment via Razorpay */
+  const handlePlaceOrder = async () => {
+    if (!validateCheckout()) return;
 
     setIsProcessingPayment(true);
     try {
@@ -227,7 +296,6 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
       if (!razorpayOrder.id) throw new Error('Invalid payment order response');
 
       // **CRITICAL FIX: Close parent drawers/modals to escape focus trap**
-      // This prevents the interaction lag and "stuck" UI reported by the user
       setIsCheckoutModalOpen(false);
       onOpenChange(false);
 
@@ -254,8 +322,8 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
                 upi: {
                   name: 'UPI / QR',
                   instruments: [
-                    { method: 'upi', vpa: true }, // UPI ID entry
-                    { method: 'upi', qr: true }   // QR Code
+                    { method: 'upi', vpa: true },
+                    { method: 'upi', qr: true },
                   ],
                 },
               },
@@ -476,7 +544,7 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
           <DialogHeader className="space-y-0.5 sm:space-y-1">
             <DialogTitle className="text-base sm:text-lg font-semibold">Quick Checkout</DialogTitle>
             <DialogDescription className="text-[10px] sm:text-xs">
-              Review your order and complete purchase via Razorpay
+              Review your order and choose a payment method
             </DialogDescription>
           </DialogHeader>
 
@@ -490,6 +558,48 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
                 placeholder="Enter your complete address"
                 className="h-8 sm:h-9 text-xs sm:text-sm rounded-lg border-border transition-all duration-300"
               />
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-xs sm:text-sm font-medium">Payment Method</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Online Payment option */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentMethod('online')}
+                  className={`relative flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-200 text-left
+                    ${selectedPaymentMethod === 'online'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:bg-accent'
+                    }`}
+                >
+                  {selectedPaymentMethod === 'online' && (
+                    <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5 text-primary" />
+                  )}
+                  <CreditCard className="h-5 w-5" />
+                  <span className="text-xs font-semibold">Online Payment</span>
+                  <span className="text-[10px] leading-tight text-center opacity-70">Card / UPI / Net Banking</span>
+                </button>
+
+                {/* Cash on Delivery option */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentMethod('cod')}
+                  className={`relative flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-200 text-left
+                    ${selectedPaymentMethod === 'cod'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:bg-accent'
+                    }`}
+                >
+                  {selectedPaymentMethod === 'cod' && (
+                    <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5 text-primary" />
+                  )}
+                  <Banknote className="h-5 w-5" />
+                  <span className="text-xs font-semibold">Cash on Delivery</span>
+                  <span className="text-[10px] leading-tight text-center opacity-70">Pay when you receive</span>
+                </button>
+              </div>
             </div>
 
             {/* Order Summary */}
@@ -515,13 +625,20 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
               </div>
             </div>
 
-            {/* Payment methods */}
-            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground pt-1">
-              <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> Card</span>
-              <span className="flex items-center gap-1"><Smartphone className="h-3 w-3" /> UPI</span>
-              <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> Net Banking</span>
-              <span className="opacity-60">Secured by Razorpay</span>
-            </div>
+            {/* Payment method info strip */}
+            {selectedPaymentMethod === 'online' ? (
+              <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground pt-1">
+                <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> Card</span>
+                <span className="flex items-center gap-1"><Smartphone className="h-3 w-3" /> UPI</span>
+                <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> Net Banking</span>
+                <span className="opacity-60">Secured by Razorpay</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-1">
+                <Banknote className="h-3 w-3" />
+                <span>Pay in cash when your order is delivered</span>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-1.5 sm:gap-2 pt-1 flex-col sm:flex-row">
@@ -533,23 +650,44 @@ export function Cart({ isOpen, onOpenChange }: CartProps) {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handlePlaceOrder}
-              disabled={isProcessingPayment || !shippingAddress.trim()}
-              className="w-full sm:w-auto px-4 sm:px-6 h-8 sm:h-9 text-xs sm:text-sm rounded-lg transition-all duration-300"
-            >
-              {isProcessingPayment ? (
-                <>
-                  <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-2 border-white border-t-transparent mr-1.5 sm:mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  Pay ₹{subtotal.toFixed(2)}
-                </>
-              )}
-            </Button>
+
+            {selectedPaymentMethod === 'online' ? (
+              <Button
+                onClick={handlePlaceOrder}
+                disabled={isProcessingPayment || !shippingAddress.trim()}
+                className="w-full sm:w-auto px-4 sm:px-6 h-8 sm:h-9 text-xs sm:text-sm rounded-lg transition-all duration-300"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-2 border-white border-t-transparent mr-1.5 sm:mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    Pay ₹{subtotal.toFixed(2)}
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleCODOrder}
+                disabled={isProcessingPayment || !shippingAddress.trim()}
+                className="w-full sm:w-auto px-4 sm:px-6 h-8 sm:h-9 text-xs sm:text-sm rounded-lg transition-all duration-300 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-2 border-white border-t-transparent mr-1.5 sm:mr-2" />
+                    Placing Order...
+                  </>
+                ) : (
+                  <>
+                    <Banknote className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    Place COD Order
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
