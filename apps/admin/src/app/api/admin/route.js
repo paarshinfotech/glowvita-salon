@@ -119,7 +119,7 @@ export const POST = authMiddlewareAdmin(
       { status: 201 }
     );
   },
-  ["SUPER_ADMIN", "REGIONAL_ADMIN"],
+  ["SUPER_ADMIN", "REGIONAL_ADMIN", "ADMIN"],
   "admin-roles:edit"
 );
 
@@ -129,11 +129,11 @@ export const GET = authMiddlewareAdmin(
     const requester = req.user;
     let query = {};
 
-    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN') {
+    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN' || requester.roleName?.toUpperCase() === 'ADMIN') {
       // Regional admins see staff (not super admins) assigned to their regions
       query = {
         roleName: { $ne: 'SUPER_ADMIN' },
-        assignedRegions: { $in: requester.assignedRegions.map(id => id.toString()) }
+        assignedRegions: { $in: (requester.assignedRegions || []).map(id => id.toString()) }
       };
     } else if (requester.roleName?.toUpperCase() === 'STAFF') {
       // Staff see only themselves
@@ -143,7 +143,7 @@ export const GET = authMiddlewareAdmin(
     const admins = await AdminUserModel.find(query).select("-password");
     return Response.json(admins);
   },
-  ["SUPER_ADMIN", "REGIONAL_ADMIN", "STAFF"],
+  ["SUPER_ADMIN", "REGIONAL_ADMIN", "ADMIN", "STAFF"],
   "admin-roles:view"
 );
 
@@ -169,33 +169,40 @@ export const PUT = authMiddlewareAdmin(
       return Response.json({ message: "Admin not found" }, { status: 404 });
     }
 
-    // Role-based validation
-    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN') {
-      if (targetAdmin.roleName?.toUpperCase() === 'SUPER_ADMIN') {
-        return forbiddenResponse("Regional Admin cannot edit Super Admin");
+    const isTargetSuperAdmin = targetAdmin.roleName?.toUpperCase() === 'SUPER_ADMIN';
+    const isRequesterSuperAdmin = requester.roleName?.toUpperCase() === 'SUPER_ADMIN';
+
+    // Role-based validation: Non-Super Admin cannot edit or reset Super Admin password
+    if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
+      return forbiddenResponse("You do not have permission to edit or reset password for Super Admin");
+    }
+
+    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN' || requester.roleName?.toUpperCase() === 'ADMIN') {
+      if (isTargetSuperAdmin) {
+        return forbiddenResponse("Admin cannot edit or reset password for Super Admin");
       }
 
       // If editing self
       if (requester.userId.toString() === targetAdmin._id.toString()) {
-        // Prevent Regional Admin from upgrading themselves or changing their own regions/permissions
+        // Prevent Admin from upgrading themselves or changing their own regions/permissions
         delete body.roleName;
         delete body.permissions;
         delete body.assignedRegions;
       } else {
         // Editing someone else (presumably STAFF)
-        if (targetAdmin.roleName?.toUpperCase() === 'REGIONAL_ADMIN') {
-          return forbiddenResponse("Regional Admin cannot edit other Regional Admins");
+        if (targetAdmin.roleName?.toUpperCase() === 'REGIONAL_ADMIN' || targetAdmin.roleName?.toUpperCase() === 'ADMIN') {
+          return forbiddenResponse("Admin cannot edit other Admins");
         }
 
         // Check if target admin is in requester's region
-        const hasOverlap = targetAdmin.assignedRegions.some(rId => requester.assignedRegions.map(rid => rid.toString()).includes(rId.toString()));
+        const hasOverlap = targetAdmin.assignedRegions.some(rId => (requester.assignedRegions || []).map(rid => rid.toString()).includes(rId.toString()));
         if (!hasOverlap && targetAdmin.assignedRegions.length > 0) {
           return forbiddenResponse("You don't have permission to edit this admin");
         }
 
         // Ensure new assignedRegions are also within requester's regions
         if (body.assignedRegions) {
-          const hasInvalidRegion = body.assignedRegions.some(rId => !requester.assignedRegions.map(rid => rid.toString()).includes(rId.toString()));
+          const hasInvalidRegion = body.assignedRegions.some(rId => !(requester.assignedRegions || []).map(rid => rid.toString()).includes(rId.toString()));
           if (hasInvalidRegion) {
             return forbiddenResponse("You can only assign staff to your own regions");
           }
@@ -231,7 +238,7 @@ export const PUT = authMiddlewareAdmin(
 
     return Response.json(updatedAdmin);
   },
-  ["SUPER_ADMIN", "REGIONAL_ADMIN"],
+  ["SUPER_ADMIN", "REGIONAL_ADMIN", "ADMIN"],
   "admin-roles:edit"
 );
 
@@ -256,13 +263,17 @@ export const DELETE = authMiddlewareAdmin(
       return Response.json({ message: "Admin not found" }, { status: 404 });
     }
 
-    // Role-based validation
-    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN') {
-      if (targetAdmin.roleName?.toUpperCase() === 'SUPER_ADMIN' || targetAdmin.roleName?.toUpperCase() === 'REGIONAL_ADMIN') {
-        return forbiddenResponse("Regional Admin cannot delete other Admins");
+    // Role-based validation: Non-Super Admin cannot delete Super Admin
+    if (targetAdmin.roleName?.toUpperCase() === 'SUPER_ADMIN' && requester.roleName?.toUpperCase() !== 'SUPER_ADMIN') {
+      return forbiddenResponse("Admin cannot delete Super Admin");
+    }
+
+    if (requester.roleName?.toUpperCase() === 'REGIONAL_ADMIN' || requester.roleName?.toUpperCase() === 'ADMIN') {
+      if (targetAdmin.roleName?.toUpperCase() === 'SUPER_ADMIN' || targetAdmin.roleName?.toUpperCase() === 'REGIONAL_ADMIN' || targetAdmin.roleName?.toUpperCase() === 'ADMIN') {
+        return forbiddenResponse("Admin cannot delete other Admins");
       }
       
-      const hasOverlap = targetAdmin.assignedRegions.some(rId => requester.assignedRegions.map(rid => rid.toString()).includes(rId.toString()));
+      const hasOverlap = targetAdmin.assignedRegions.some(rId => (requester.assignedRegions || []).map(rid => rid.toString()).includes(rId.toString()));
       if (!hasOverlap && targetAdmin.assignedRegions.length > 0) {
         return forbiddenResponse("You don't have permission to delete this admin");
       }
@@ -275,6 +286,6 @@ export const DELETE = authMiddlewareAdmin(
     await AdminUserModel.findByIdAndDelete(targetId);
     return Response.json({ message: "Admin deleted successfully" });
   },
-  ["SUPER_ADMIN", "REGIONAL_ADMIN"],
+  ["SUPER_ADMIN", "REGIONAL_ADMIN", "ADMIN"],
   "admin-roles:delete"
 );

@@ -82,9 +82,13 @@ export function AddAdminForm({
   const allRegions = regionsResponse?.data || [];
 
   // Filter regions based on current admin's assigned regions if they are not SUPER_ADMIN
-  const regionsList = (currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN') 
-    ? allRegions 
+  const regionsList = (currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN')
+    ? allRegions
     : allRegions.filter((r: any) => currentAdmin?.assignedRegions?.includes(r._id));
+
+  const isTargetSuperAdmin = initialData?.roleName?.toUpperCase() === 'SUPER_ADMIN';
+  const isCurrentSuperAdmin = currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN';
+  const isSuperAdminPasswordRestricted = isEditMode && isTargetSuperAdmin && !isCurrentSuperAdmin;
 
   const getInitialFormData = (data: AdminUser | null) => {
     const base = {
@@ -100,6 +104,12 @@ export function AddAdminForm({
       assignedRegions: [],
       ...data
     };
+
+    // Normalize mobile number: strip country code (+91) and non-digits to keep 10-digit number
+    if (base.mobileNo) {
+      const digits = String(base.mobileNo).replace(/\D/g, '');
+      base.mobileNo = digits.length > 10 ? digits.slice(-10) : digits;
+    }
 
     // Normalize roleName to UPPERCASE for consistent UI matching in Select component
     if (base.roleName) {
@@ -137,7 +147,7 @@ export function AddAdminForm({
       setErrors({});
       setShowPassword(false);
       setShowConfirmPassword(false);
-      
+
       // Reset Verification
       setEmailOtp('');
       setIsEmailOtpSent(false);
@@ -159,6 +169,14 @@ export function AddAdminForm({
     if (name === 'mobileNo') {
       const numericValue = value.replace(/\D/g, '');
       if (numericValue.length > 10) return;
+      let numericValue = value.replace(/\D/g, '');
+      if (numericValue.length > 10) {
+        if (numericValue.startsWith('91') && numericValue.length === 12) {
+          numericValue = numericValue.slice(2);
+        } else {
+          numericValue = numericValue.slice(-10);
+        }
+      }
 
       if (!isEditMode) {
         setIsPhoneVerified(false);
@@ -379,9 +397,11 @@ export function AddAdminForm({
       newErrors.fullName = 'Full Name should contain only alphabets and spaces.';
     }
 
+    const cleanMobile = formData.mobileNo ? formData.mobileNo.replace(/\D/g, '').slice(-10) : '';
     if (!formData.mobileNo.trim()) {
       newErrors.mobileNo = 'Mobile number is required';
     } else if (!/^\d{10}$/.test(formData.mobileNo)) {
+    } else if (!/^\d{10}$/.test(cleanMobile)) {
       newErrors.mobileNo = 'Please enter a valid 10-digit mobile number.';
     } else if (!isEditMode && !isPhoneVerified) {
       newErrors.mobileNo = 'Please verify your mobile number.';
@@ -413,7 +433,9 @@ export function AddAdminForm({
 
     // Password validation for new admin or when changing password
     if (!isEditMode || formData.password) {
-      if (!formData.password) {
+      if (isSuperAdminPasswordRestricted && formData.password) {
+        newErrors.password = "You do not have permission to reset Super Admin's password.";
+      } else if (!formData.password) {
         newErrors.password = 'Password is required';
       } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(formData.password)) {
         newErrors.password = 'Password must be at least 8 characters and include uppercase, lowercase, and a number.';
@@ -445,23 +467,26 @@ export function AddAdminForm({
         profileImageUrl = fileBase64;
       }
 
+      const cleanMobile = formData.mobileNo.replace(/\D/g, '').slice(-10);
+
       // Prepare JSON data matching MongoDB schema
       const jsonDataToSend = {
         fullName: formData.fullName.trim(),
         mobileNo: formData.mobileNo.trim(),
+        mobileNo: cleanMobile,
         emailAddress: formData.emailAddress.trim(),
         roleName: formData.roleName,
         designation: formData.designation.trim(),
         address: formData.address.trim(),
         permissions: selectedPermissions,
-        assignedRegions: currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN' 
-          ? (selectedRegions.length > 0 ? selectedRegions : currentAdmin.assignedRegions) 
+        assignedRegions: currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN'
+          ? (selectedRegions.length > 0 ? selectedRegions : currentAdmin.assignedRegions)
           : selectedRegions,
         isActive: formData.isActive ?? true,
         updatedAt: new Date().toISOString(),
         ...(profileImageUrl && { profileImage: profileImageUrl }),
-        // Only include password fields if needed
-        ...(!isEditMode || formData.password ? {
+        // Only include password fields if needed and allowed
+        ...(!isEditMode || (formData.password && !isSuperAdminPasswordRestricted) ? {
           password: formData.password
         } : {}),
         // Add createdAt only for new admin
@@ -615,7 +640,7 @@ export function AddAdminForm({
                       required
                     />
                     {!isEditMode && !isPhoneVerified && (
-                      <Button 
+                      <Button
                         type="button"
                         onClick={handleSendPhoneOtp}
                         disabled={isOtpLoading || !formData.mobileNo || formData.mobileNo.length < 10}
@@ -626,20 +651,20 @@ export function AddAdminForm({
                     )}
                   </div>
                   {errors.mobileNo && <p className="text-xs text-destructive">{errors.mobileNo}</p>}
-                  
+
                   {!isEditMode && isPhoneOtpSent && !isPhoneVerified && (
                     <div className="pt-2 animate-in fade-in slide-in-from-top-2">
                       <div className="flex gap-2">
-                        <Input 
-                          type="text" 
-                          placeholder="OTP" 
+                        <Input
+                          type="text"
+                          placeholder="OTP"
                           maxLength={6}
-                          value={phoneOtp} 
+                          value={phoneOtp}
                           onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ''))}
                           disabled={isOtpLoading}
                           className="text-sm flex-1 text-center tracking-widest font-black"
                         />
-                        <Button 
+                        <Button
                           type="button"
                           onClick={handleVerifyPhoneOtp}
                           disabled={isOtpLoading || phoneOtp.length < 6}
@@ -671,7 +696,7 @@ export function AddAdminForm({
                       required
                     />
                     {!isEditMode && !isEmailVerified && (
-                      <Button 
+                      <Button
                         type="button"
                         onClick={handleSendEmailOtp}
                         disabled={isOtpLoading || !formData.emailAddress || !/\S+@\S+\.\S+/.test(formData.emailAddress)}
@@ -682,20 +707,20 @@ export function AddAdminForm({
                     )}
                   </div>
                   {errors.emailAddress && <p className="text-xs text-destructive">{errors.emailAddress}</p>}
-                  
+
                   {!isEditMode && isEmailOtpSent && !isEmailVerified && (
                     <div className="pt-2 animate-in fade-in slide-in-from-top-2">
                       <div className="flex gap-2">
-                        <Input 
-                          type="text" 
-                          placeholder="OTP" 
+                        <Input
+                          type="text"
+                          placeholder="OTP"
                           maxLength={6}
-                          value={emailOtp} 
+                          value={emailOtp}
                           onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
                           disabled={isOtpLoading}
                           className="text-sm flex-1 text-center tracking-widest font-black"
                         />
-                        <Button 
+                        <Button
                           type="button"
                           onClick={handleVerifyEmailOtp}
                           disabled={isOtpLoading || emailOtp.length < 6}
@@ -728,59 +753,65 @@ export function AddAdminForm({
             <div className="space-y-4">
               <h3 className="text-base font-medium border-b pb-2">Security</h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm">
-                    {isEditMode ? 'New Password (Optional)' : 'Password *'}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password || ''}
-                      onChange={handleInputChange}
-                      className={`text-sm pr-10 ${errors.password ? 'border-destructive' : ''}`}
-                      disabled={isLoading}
-                      required={!isEditMode}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+              {isSuperAdminPasswordRestricted ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-xs sm:text-sm">
+                  Super Admin password cannot be reset by another admin role. Only Super Admin can change their own password.
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm">
+                      {isEditMode ? 'New Password (Optional)' : 'Password *'}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password || ''}
+                        onChange={handleInputChange}
+                        className={`text-sm pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                        disabled={isLoading}
+                        required={!isEditMode}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm">
-                    {isEditMode ? 'Confirm New Password' : 'Confirm Password *'}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword || ''}
-                      onChange={handleInputChange}
-                      className={`text-sm pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
-                      disabled={isLoading}
-                      required={!isEditMode || !!formData.password}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm">
+                      {isEditMode ? 'Confirm New Password' : 'Confirm Password *'}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword || ''}
+                        onChange={handleInputChange}
+                        className={`text-sm pr-10 ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                        disabled={isLoading}
+                        required={!isEditMode || !!formData.password}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
                   </div>
-                  {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Role & Profile Section */}
@@ -864,9 +895,9 @@ export function AddAdminForm({
 
             {/* Region Assignment Section */}
             {/* Super Admin can assign regions to Regional Admins. Staff are handled separately (global or auto-assigned). */}
-            {((currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN' && (formData.roleName?.toUpperCase() === 'REGIONAL_ADMIN')) || 
-              (currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN' && (formData.roleName?.toUpperCase() === 'STAFF'))) && 
-             !(isEditMode && (initialData?._id?.toString() === currentAdmin?.userId?.toString())) ? (
+            {((currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN' && (formData.roleName?.toUpperCase() === 'REGIONAL_ADMIN')) ||
+              (currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN' && (formData.roleName?.toUpperCase() === 'STAFF'))) &&
+              !(isEditMode && (initialData?._id?.toString() === currentAdmin?.userId?.toString())) ? (
               <div className="space-y-4">
                 <h3 className="text-base font-medium border-b pb-2">Region Assignment</h3>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -900,8 +931,8 @@ export function AddAdminForm({
             ) : null}
 
             {/* Permissions Section */}
-            {(currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN' || (currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN' && (formData.roleName?.toUpperCase() === 'STAFF'))) && 
-             !(isEditMode && (initialData?._id?.toString() === currentAdmin?.userId?.toString())) ? (
+            {(currentAdmin?.roleName?.toUpperCase() === 'SUPER_ADMIN' || (currentAdmin?.roleName?.toUpperCase() === 'REGIONAL_ADMIN' && (formData.roleName?.toUpperCase() === 'STAFF'))) &&
+              !(isEditMode && (initialData?._id?.toString() === currentAdmin?.userId?.toString())) ? (
               <div className="space-y-4">
                 <h3 className="text-base font-medium border-b pb-2">Granular Permissions</h3>
 
@@ -926,42 +957,42 @@ export function AddAdminForm({
                           return true;
                         })
                         .map(item => (
-                        <TableRow key={item.permission}>
-                          <TableCell className="font-medium">{item.title}</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              id={`all_${item.permission}`}
-                              checked={isPermissionChecked(item.permission, 'all')}
-                              onCheckedChange={(checked) => handlePermissionChange(item.permission, 'all', !!checked)}
-                              disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              id={`view_${item.permission}`}
-                              checked={isPermissionChecked(item.permission, 'view')}
-                              onCheckedChange={(checked) => handlePermissionChange(item.permission, 'view', !!checked)}
-                              disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              id={`edit_${item.permission}`}
-                              checked={isPermissionChecked(item.permission, 'edit')}
-                              onCheckedChange={(checked) => handlePermissionChange(item.permission, 'edit', !!checked)}
-                              disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              id={`delete_${item.permission}`}
-                              checked={isPermissionChecked(item.permission, 'delete')}
-                              onCheckedChange={(checked) => handlePermissionChange(item.permission, 'delete', !!checked)}
-                              disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          <TableRow key={item.permission}>
+                            <TableCell className="font-medium">{item.title}</TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`all_${item.permission}`}
+                                checked={isPermissionChecked(item.permission, 'all')}
+                                onCheckedChange={(checked) => handlePermissionChange(item.permission, 'all', !!checked)}
+                                disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`view_${item.permission}`}
+                                checked={isPermissionChecked(item.permission, 'view')}
+                                onCheckedChange={(checked) => handlePermissionChange(item.permission, 'view', !!checked)}
+                                disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`edit_${item.permission}`}
+                                checked={isPermissionChecked(item.permission, 'edit')}
+                                onCheckedChange={(checked) => handlePermissionChange(item.permission, 'edit', !!checked)}
+                                disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`delete_${item.permission}`}
+                                checked={isPermissionChecked(item.permission, 'delete')}
+                                onCheckedChange={(checked) => handlePermissionChange(item.permission, 'delete', !!checked)}
+                                disabled={formData.roleName === 'SUPER_ADMIN' || isLoading}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </div>
