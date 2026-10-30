@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/tabs";
 import ServicesTab from "./components/ServicesTab";
 import ProductsTab from "./components/ProductsTab";
@@ -77,14 +77,22 @@ interface ProductCartItem extends Product {
 }
 
 export default function SalesPage() {
-  const { user, role } = useCrmAuth();
+  const { user, role, isLoading } = useCrmAuth();
   const userRole = (role || user?.role || "").toLowerCase();
+  const isSupplier = userRole === 'supplier';
 
   // Determine initial active tab based on user role
-  const initialTab = userRole === 'supplier' ? 'products' : 'services';
+  const initialTab = isSupplier ? 'products' : 'services';
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'services' | 'products'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'services' | 'products'>(initialTab);
+
+  // Sync tab when role becomes available
+  useEffect(() => {
+    if (isSupplier) {
+      setActiveTab('products');
+    }
+  }, [isSupplier]);
 
   // Shared states between tabs
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -92,7 +100,7 @@ export default function SalesPage() {
   const [productCart, setProductCart] = useState<ProductCartItem[]>([]);
 
   // Determine which tabs to show based on user role
-  const showServicesTab = userRole !== 'supplier';
+  const showServicesTab = !isSupplier && userRole !== '';
   const showProductsTab = true;
 
   return (
@@ -135,18 +143,16 @@ export default function SalesPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="services" className="mt-0 mt-6 focus-visible:ring-0">
-            {showServicesTab ? (
+          {showServicesTab && (
+            <TabsContent value="services" className="mt-0 mt-6 focus-visible:ring-0">
               <ServicesTab
                 cart={serviceCart}
                 setCart={setServiceCart}
                 selectedClient={selectedClient}
                 setSelectedClient={setSelectedClient}
               />
-            ) : (
-              <div className="py-8 text-center text-muted-foreground">This tab is not available for your role.</div>
-            )}
-          </TabsContent>
+            </TabsContent>
+          )}
 
           <TabsContent value="products" className="mt-0 mt-6 focus-visible:ring-0">
             <ProductsTab

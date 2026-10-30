@@ -187,7 +187,7 @@ export default function ProductsTab({
   }, [categories, productsData]);
 
   // Fetch staff members
-  const { data: staffData = [] } = useGetStaffQuery({});
+  const { data: staffData = [] } = useGetStaffQuery({}, { skip: !VENDOR_ID || isSupplier });
 
   // Filter products based on search and category
   useEffect(() => {

@@ -108,13 +108,15 @@ export default function ServicesTab({
   selectedClient,
   setSelectedClient
 }: ServicesTabProps) {
-  const { user } = useCrmAuth();
+  const { user, role: authRole } = useCrmAuth();
+  const userRole = (authRole || user?.role || "").toLowerCase();
+  const isSupplier = userRole === 'supplier';
   const VENDOR_ID = user?._id || "";
   const invoiceRef = useRef<any>(null);
 
   // Fetch vendor profile
   const { data: vendorProfile } = useGetVendorProfileQuery(undefined, {
-    skip: !user?._id
+    skip: !user?._id || isSupplier
   });
 
   // Get vendor name from profile
@@ -155,7 +157,7 @@ export default function ServicesTab({
   // Fetch services with better loading state
   const { data: servicesData, isLoading: servicesLoading, isFetching: servicesFetching } = useGetVendorServicesQuery(
     { vendorId: VENDOR_ID },
-    { skip: !VENDOR_ID }
+    { skip: !VENDOR_ID || isSupplier }
   );
 
   // Fetch clients
@@ -165,7 +167,7 @@ export default function ServicesTab({
     page: 1,
     limit: 100
   }, {
-    skip: !user?._id,
+    skip: !user?._id || isSupplier,
   });
 
   // Create client mutation
@@ -175,10 +177,10 @@ export default function ServicesTab({
   const [createBilling, { isLoading: isCreatingBilling }] = useCreateBillingMutation();
 
   // Fetch categories
-  const { data: categories = [] } = useGetCategoriesQuery(undefined);
+  const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: isSupplier });
 
   // Fetch staff members
-  const { data: staffData = [] } = useGetStaffQuery({});
+  const { data: staffData = [] } = useGetStaffQuery({}, { skip: !VENDOR_ID || isSupplier });
 
   // Filter services based on search and category
   useEffect(() => {
@@ -322,7 +324,7 @@ export default function ServicesTab({
 
   // Fetch add-ons
   const { data: addOnsData } = useGetAddOnsQuery(undefined, {
-    skip: !user?._id
+    skip: !user?._id || isSupplier
   });
 
   const allAddOns = (addOnsData?.addOns as AddOn[]) || [];

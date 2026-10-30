@@ -49,7 +49,7 @@ export function CrmLayout({ children }: { children: React.ReactNode; }) {
     pollingInterval: 60 * 1000, // Re-fetch from server every 60 seconds
   });
   const { data: vendorProfile } = useGetVendorProfileQuery(undefined, {
-    skip: !isCrmAuthenticated || !user?._id,
+    skip: !isCrmAuthenticated || !user?._id || (role || user?.role || "").toLowerCase() !== 'vendor',
   });
 
   useEffect(() => {
