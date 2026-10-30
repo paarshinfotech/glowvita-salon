@@ -252,14 +252,18 @@ export default function AdminRolesPage() {
                       </TableCell>
                       {currentAdmin?.roleName !== 'STAFF' && (
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => dispatch(openModal({ modalType: 'editAdmin', data: admin }))}
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
+                          {admin.roleName?.toUpperCase() === 'SUPER_ADMIN' && currentAdmin?.roleName?.toUpperCase() !== 'SUPER_ADMIN' ? (
+                            <span className="text-xs text-muted-foreground italic px-2 py-1">Protected</span>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => dispatch(openModal({ modalType: 'editAdmin', data: admin }))}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>
