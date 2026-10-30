@@ -13,7 +13,7 @@ const Testimonials = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [position, setPosition] = useState(0);
-  
+
   const testimonials: Testimonial[] = [
     {
       id: '1',
@@ -39,10 +39,10 @@ const Testimonials = () => {
   ];
 
   const totalWidth = testimonials.length * 384; // 384px per testimonial
-  
+
   useEffect(() => {
     if (isHovered || testimonials.length === 0) return;
-    
+
     const interval = setInterval(() => {
       setPosition(prev => {
         // Move left continuously
@@ -54,7 +54,7 @@ const Testimonials = () => {
         return newPosition;
       });
     }, 50); // Adjust speed as needed
-    
+
     return () => clearInterval(interval);
   }, [isHovered, totalWidth, testimonials.length]);
 
@@ -99,7 +99,7 @@ const Testimonials = () => {
       </div>
 
       {/* Scrolling Testimonials Container */}
-      <div 
+      <div
         ref={containerRef}
         className="overflow-hidden w-full py-4 relative"
         onMouseEnter={() => setIsHovered(true)}
@@ -109,10 +109,10 @@ const Testimonials = () => {
         <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
         {/* Right fade overlay */}
         <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
-        
-        <div 
-          className="flex" 
-          style={{ 
+
+        <div
+          className="flex"
+          style={{
             transform: `translateX(${position}px)`
           }}
         >
