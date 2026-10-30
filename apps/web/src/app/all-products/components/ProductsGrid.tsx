@@ -56,7 +56,8 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     <section className="pt-8 pb-4 container mx-auto px-4 sm:px-6 lg:px-8 bg-background">
       {/* Section Header */}
       <div className="mb-2">
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');`}</style>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" />
         <div style={{ display: 'inline-block', maxWidth: '100%' }}>
           <h2
             style={{

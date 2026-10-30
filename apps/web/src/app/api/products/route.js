@@ -140,8 +140,12 @@ export const GET = async (request) => {
     const vendorMap = new Map(vendors.map(v => [v._id.toString(), v]));
     const supplierMap = new Map(suppliers.map(s => [s._id.toString(), s]));
 
-    // Filter and transform products
+    // Filter and transform products -- deduplicate by _id to guard against duplicate DB entries
+    const seenProductIds = new Set();
     const validProducts = approvedProducts.filter(product => {
+      const pid = product._id.toString();
+      if (seenProductIds.has(pid)) return false;
+      seenProductIds.add(pid);
       if (product.origin === 'Vendor') {
         return vendorMap.has(product.vendorId.toString());
       } else {

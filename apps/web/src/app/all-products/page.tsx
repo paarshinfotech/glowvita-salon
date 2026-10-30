@@ -274,11 +274,18 @@ export default function AllProductsPage() {
     return Array.from(uniqueBrands);
   }, [productsApiData]);
 
-  // Initialize products with API data
+  // Initialize products with API data -- deduplicate by id to prevent double entries
   useEffect(() => {
     if (productsApiData?.products) {
-      setProducts(productsApiData.products);
-      setFilteblueProducts(productsApiData.products);
+      const seen = new Set<string>();
+      const unique = (productsApiData.products as Product[]).filter((p) => {
+        const key = String(p.id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setProducts(unique);
+      setFilteblueProducts(unique);
     }
   }, [productsApiData]);
 
@@ -402,8 +409,8 @@ export default function AllProductsPage() {
     const step = () => {
       if (!flashScrollPaused.current && el) {
         el.scrollLeft += speed;
-        // Reset to start when we've scrolled halfway (duplicated list)
-        if (el.scrollLeft >= el.scrollWidth / 2) {
+        // Reset to start when reached the end
+        if (el.scrollLeft + el.clientWidth >= el.scrollWidth) {
           el.scrollLeft = 0;
         }
       }
@@ -479,9 +486,8 @@ export default function AllProductsPage() {
                   onMouseEnter={() => { flashScrollPaused.current = true; }}
                   onMouseLeave={() => { flashScrollPaused.current = false; }}
                 >
-                  {/* Render cards twice for seamless infinite loop */}
-                  {[...products.filter(p => p.salePrice && p.salePrice < p.price),
-                  ...products.filter(p => p.salePrice && p.salePrice < p.price)]
+                  {/* Render each sale product exactly once */}
+                  {products.filter(p => p.salePrice && p.salePrice < p.price)
                     .map((product, idx) => (
                       <div
                         key={`${product.id}-${idx}`}
