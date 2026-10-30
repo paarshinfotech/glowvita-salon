@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@repo/ui/textarea";
 import { Search, Plus, Minus, Trash2, ShoppingCart, UserCheck, CheckCircle, X, Mail, Printer, DownloadCloud, Calendar, Paperclip, UserCircle } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useGetAdminProductCategoriesQuery, useGetCrmProductsQuery, useGetSupplierProductsQuery, useGetClientsQuery, useCreateClientMutation, useGetVendorProfileQuery, useCreateBillingMutation, useGetStaffQuery, useGetCurrentSupplierProfileQuery } from "@repo/store/api";
+import { useGetProductCategoriesQuery, useGetCrmProductsQuery, useGetSupplierProductsQuery, useGetClientsQuery, useCreateClientMutation, useGetVendorProfileQuery, useCreateBillingMutation, useGetStaffQuery, useGetCurrentSupplierProfileQuery } from "@repo/store/api";
 import { useCrmAuth } from "@/hooks/useCrmAuth";
 import { toast } from 'sonner';
 import InvoiceUI from "@/components/InvoiceUI";
@@ -176,7 +176,7 @@ export default function ProductsTab({
   const [createBilling, { isLoading: isCreatingBilling }] = useCreateBillingMutation();
 
   // Fetch categories
-  const { data: categoriesData } = useGetAdminProductCategoriesQuery({});
+  const { data: categoriesData } = useGetProductCategoriesQuery({});
   const categories = useMemo(() => categoriesData?.data || [], [categoriesData]);
 
   // Only show categories that are present in the loaded products

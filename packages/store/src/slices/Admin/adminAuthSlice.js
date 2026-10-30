@@ -70,19 +70,19 @@ const adminAuthSlice = createSlice({
         // Clear all possible auth data from localStorage
         localStorage.removeItem('adminAuthState');
         localStorage.removeItem('userAuthState');
-        localStorage.removeItem('crmAuthState');
+        // Do not clear crmAuthState on admin auth clear
         
         // Clear all possible auth cookies
         Cookies.remove('token', { path: '/' });
         Cookies.remove('token', { path: '/', domain: window.location.hostname });
-        Cookies.remove('crm_access_token', { path: '/' });
-        Cookies.remove('crm_access_token', { path: '/', domain: window.location.hostname });
+        // Do not clear crm_access_token on admin auth clear
+
         Cookies.remove('access_token', { path: '/' });
         Cookies.remove('access_token', { path: '/', domain: window.location.hostname });
         
         // Clear any other possible tokens
         Object.keys(localStorage).forEach(key => {
-          if (key.includes('token') || key.includes('auth')) {
+          if ((key.includes('token') || key.includes('auth')) && !key.toLowerCase().includes('crm')) {
             try {
               localStorage.removeItem(key);
             } catch (e) {
