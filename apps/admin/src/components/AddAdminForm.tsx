@@ -167,8 +167,6 @@ export function AddAdminForm({
     }
 
     if (name === 'mobileNo') {
-      const numericValue = value.replace(/\D/g, '');
-      if (numericValue.length > 10) return;
       let numericValue = value.replace(/\D/g, '');
       if (numericValue.length > 10) {
         if (numericValue.startsWith('91') && numericValue.length === 12) {
@@ -400,7 +398,6 @@ export function AddAdminForm({
     const cleanMobile = formData.mobileNo ? formData.mobileNo.replace(/\D/g, '').slice(-10) : '';
     if (!formData.mobileNo.trim()) {
       newErrors.mobileNo = 'Mobile number is required';
-    } else if (!/^\d{10}$/.test(formData.mobileNo)) {
     } else if (!/^\d{10}$/.test(cleanMobile)) {
       newErrors.mobileNo = 'Please enter a valid 10-digit mobile number.';
     } else if (!isEditMode && !isPhoneVerified) {
@@ -472,7 +469,6 @@ export function AddAdminForm({
       // Prepare JSON data matching MongoDB schema
       const jsonDataToSend = {
         fullName: formData.fullName.trim(),
-        mobileNo: formData.mobileNo.trim(),
         mobileNo: cleanMobile,
         emailAddress: formData.emailAddress.trim(),
         roleName: formData.roleName,
