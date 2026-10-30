@@ -31,6 +31,7 @@ import RelevantProducts from '../components/RelevantProducts';
 import ProductPurchaseActions from '../components/ProductPurchaseActions';
 
 interface Product {
+  origin?: 'Vendor' | 'Supplier' | string;
   id: string;
   name: string;
   description: string;
@@ -154,15 +155,18 @@ export default function ProductDetailsPage() {
 
   const product = productResponse?.product;
   const vendorId = product?.vendorId;
+  const isSupplierProduct = (product?.origin || '').toLowerCase() === 'supplier';
+  const isVendorProduct = !isSupplierProduct;
 
   // Fetch vendor data to check subscription
   const { data: vendorResponse } = useGetPublicVendorByIdQuery(vendorId, {
-    skip: !vendorId,
+    skip: !vendorId || isSupplierProduct,
   });
 
   const vendorData = vendorResponse?.vendor;
 
   const isSubscriptionExpired = useMemo(() => {
+    if (isSupplierProduct) return false;
     if (!vendorData) return false;
 
     const subscription = vendorData.subscription;
@@ -895,13 +899,15 @@ export default function ProductDetailsPage() {
                     </div>
                   </div>
                 </div>
-                <Button
+                {isVendorProduct && (
+                  <Button
                   variant="outline"
                   className="border-[#6a4c6a] text-[#6a4c6a] hover:bg-[#fcf8fc] text-xs px-3 h-8 rounded-md"
                   onClick={() => product.vendorId && router.push(`/salon-details/${product.vendorId}`)}
                 >
                   View Salon
-                </Button>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
