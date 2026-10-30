@@ -497,13 +497,13 @@ export default function ProfilePage() {
                       <span className="hidden sm:inline">Opening Hours</span>
                       <span className="sm:hidden">Hours</span>
                     </TabsTrigger>
-                    <TabsTrigger
+                      {/* <TabsTrigger
                       value="sms"
                       className="whitespace-nowrap rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/20"
                     >
                       <span className="hidden sm:inline">SMS Packages</span>
                       <span className="sm:hidden">SMS</span>
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TabsTrigger
                       value="taxes"
                       className="whitespace-nowrap rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/20"
@@ -539,13 +539,13 @@ export default function ProfilePage() {
                     >
                       Documents
                     </TabsTrigger>
-                    <TabsTrigger
+                      {/* <TabsTrigger
                       value="sms"
                       className="whitespace-nowrap rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/20"
                     >
                       <span className="hidden sm:inline">SMS Packages</span>
                       <span className="sm:hidden">SMS</span>
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TabsTrigger
                       value="notifications"
                       className="whitespace-nowrap rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all hover:bg-background/60 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:border data-[state=active]:border-primary/20"
@@ -625,81 +625,81 @@ export default function ProfilePage() {
                 />
               </TabsContent>
 
-              <TabsContent value="sms">
+                {/* <TabsContent value="sms">
                 <SmsPackagesTab />
-              </TabsContent>
+              </TabsContent> */}
 
-              <TabsContent value="taxes">
-                <TaxesTab taxes={localVendor?.taxes || { taxValue: 0, taxType: 'percentage' }} setVendor={setLocalVendor} />
-              </TabsContent>
-            </>
+                <TabsContent value="taxes">
+                  <TaxesTab taxes={localVendor?.taxes || { taxValue: 0, taxType: 'percentage' }} setVendor={setLocalVendor} />
+                </TabsContent>
+              </>
           )}
 
-          {role === 'supplier' && (
-            <>
-              <TabsContent value="subscription">
-                <SubscriptionTab subscription={localSupplier?.subscription} userType="supplier" />
-              </TabsContent>
+              {role === 'supplier' && (
+                <>
+                  <TabsContent value="subscription">
+                    <SubscriptionTab subscription={localSupplier?.subscription} userType="supplier" />
+                  </TabsContent>
 
 
 
-              <TabsContent value="bank">
-                <BankDetailsTab bankDetails={localSupplier?.bankDetails || {}} setVendor={setLocalSupplier} />
-              </TabsContent>
+                  <TabsContent value="bank">
+                    <BankDetailsTab bankDetails={localSupplier?.bankDetails || {}} setVendor={setLocalSupplier} />
+                  </TabsContent>
 
-              <TabsContent value="documents">
-                <DocumentsTab documents={localSupplier?.documents} setVendor={setLocalSupplier} />
-              </TabsContent>
+                  <TabsContent value="documents">
+                    <DocumentsTab documents={localSupplier?.documents} setVendor={setLocalSupplier} />
+                  </TabsContent>
 
-              <TabsContent value="sms">
+                    {/* <TabsContent value="sms">
                 <SmsPackagesTab />
-              </TabsContent>
-            </>
+              </TabsContent> */}
+                  </>
           )}
 
-          {role === 'doctor' && (
-            <>
-              <TabsContent value="subscription">
-                <SubscriptionTab subscription={localDoctor?.subscription} userType="doctor" />
-              </TabsContent>
-              <TabsContent value="documents">
-                <DocumentsTab documents={localDoctor?.documents} setVendor={setLocalDoctor} />
-              </TabsContent>
-            </>
-          )}
+                  {role === 'doctor' && (
+                    <>
+                      <TabsContent value="subscription">
+                        <SubscriptionTab subscription={localDoctor?.subscription} userType="doctor" />
+                      </TabsContent>
+                      <TabsContent value="documents">
+                        <DocumentsTab documents={localDoctor?.documents} setVendor={setLocalDoctor} />
+                      </TabsContent>
+                    </>
+                  )}
 
-          <TabsContent value="notifications">
-            {role === 'vendor' && localVendor && (
-              <NotificationsTab
-                profile={localVendor}
-                setProfile={setLocalVendor}
-                updateMutation={apiUpdateVendor}
-              />
-            )}
-            {role === 'supplier' && localSupplier && (
-              <NotificationsTab
-                profile={localSupplier}
-                setProfile={setLocalSupplier}
-                updateMutation={apiUpdateSupplier}
-              />
-            )}
-            {role === 'doctor' && localDoctor && (
-              <NotificationsTab
-                profile={localDoctor}
-                setProfile={setLocalDoctor}
-                updateMutation={apiUpdateDoctor}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+                  <TabsContent value="notifications">
+                    {role === 'vendor' && localVendor && (
+                      <NotificationsTab
+                        profile={localVendor}
+                        setProfile={setLocalVendor}
+                        updateMutation={apiUpdateVendor}
+                      />
+                    )}
+                    {role === 'supplier' && localSupplier && (
+                      <NotificationsTab
+                        profile={localSupplier}
+                        setProfile={setLocalSupplier}
+                        updateMutation={apiUpdateSupplier}
+                      />
+                    )}
+                    {role === 'doctor' && localDoctor && (
+                      <NotificationsTab
+                        profile={localDoctor}
+                        setProfile={setLocalDoctor}
+                        updateMutation={apiUpdateDoctor}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
 
-        <QRCodeModal
-          open={qrModalOpen}
-          onOpenChange={setQrModalOpen}
-          profileData={profileData}
-          role={role}
-        />
+              <QRCodeModal
+                open={qrModalOpen}
+                onOpenChange={setQrModalOpen}
+                profileData={profileData}
+                role={role}
+              />
+            </div>
       </div>
-    </div>
-  );
+      );
 }

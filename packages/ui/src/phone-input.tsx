@@ -83,7 +83,8 @@ export function PhoneInput({
         value={value.countryCode}
         onChange={handleCodeChange}
         disabled={disabled}
-        className="bg-transparent border-r border-gray-200 px-2 py-0 text-sm font-semibold text-gray-700 cursor-pointer focus:outline-none min-w-0 w-[4.5rem] shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+        className="bg-transparent border-r border-gray-200 px-2 py-0 text-sm font-semibold text-gray-700 cursor-pointer focus:outline-none shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ minWidth: '3.5rem', maxWidth: '5rem' }}
         aria-label="Country code"
       >
         {COUNTRY_CODES.map((c) => (

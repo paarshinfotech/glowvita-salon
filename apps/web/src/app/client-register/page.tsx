@@ -10,7 +10,7 @@ import { PhoneInput, type PhoneInputValue } from '@repo/ui/phone-input';
 import { Calendar, Eye, EyeOff, Map as MapIcon, Gift, MapPin, ShieldCheck, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { NEXT_PUBLIC_GOOGLE_MAPS_API_KEY } from '@repo/config/config';
-import { Dialog, DialogContent, DialogDescription,DialogFooter, DialogHeader, DialogTitle } from '@repo/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@repo/ui/dialog';
 // import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@repo/ui/dialog';
 import { validateLocalNumber } from '@repo/lib/utils/phoneUtils';
 
@@ -637,15 +637,15 @@ function ClientRegisterForm() {
         {/* Left Column: Brand & Features */}
         <div className="md:w-[40%] bg-[#422A3C] text-white p-6 md:p-8 pt-10 md:pt-14 pb-8 flex flex-col justify-start gap-12 relative overflow-hidden">
           {/* Decorative interior translucent circles */}
-         <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 pointer-events-none"></div>
+          <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 pointer-events-none"></div>
           <div className="absolute bottom-[39px] left-[29px] right-10 w-16 h-16 rounded-full bg-white/10 pointer-events-none"></div>
           <div className="absolute bottom-[7px] right-[30px] left-10 w-16 h-16 rounded-full bg-white/10 pointer-events-none"></div>
 
           {/* User lock icon */}
           <div className="flex flex-col items-center relative z-10">
-          
+
             <div className="w-[80px] h-[80px] flex items-center justify-center filter drop-shadow-sm">
-             <img   src="/images/user-profile.png" alt="User profile" className="w-full h-full object-contain"/>
+              <img src="/images/user-profile.png" alt="User profile" className="w-full h-full object-contain" />
             </div>
           </div>
 
@@ -712,114 +712,114 @@ function ClientRegisterForm() {
 
           {/* Form centered in remaining space */}
           <div className="flex-1 flex flex-col justify-center pb-6 overflow-hidden">
-          {!showRegistrationForm ? (
-            <div className="space-y-5">
-              <form onSubmit={handleProceedToForm} className="space-y-6">
-                {/* Mobile Block */}
-                <div className="space-y-4 p-5 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                      Mobile Number <span className="text-red-500">*</span>
-                      {!isPhoneOtpSent && !isPhoneVerified && phoneValue.phone.length < 10 && phoneValue.countryCode === '91' && (
-                        <span className="text-[10px] font-normal text-gray-400 ml-auto">OTP sends automatically</span>
+            {!showRegistrationForm ? (
+              <div className="space-y-5">
+                <form onSubmit={handleProceedToForm} className="space-y-6">
+                  {/* Mobile Block */}
+                  <div className="space-y-4 p-5 rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                        Mobile Number <span className="text-red-500">*</span>
+                        {!isPhoneOtpSent && !isPhoneVerified && phoneValue.phone.length < 10 && phoneValue.countryCode === '91' && (
+                          <span className="text-[10px] font-normal text-gray-400 ml-auto">OTP sends automatically</span>
+                        )}
+                      </Label>
+                      {isPhoneVerified && (
+                        <span className="text-green-600 text-xs font-bold flex items-center gap-1 animate-in fade-in zoom-in duration-300">
+                          <ShieldCheck className="w-4 h-4" /> Verified
+                        </span>
                       )}
-                    </Label>
-                    {isPhoneVerified && (
-                      <span className="text-green-600 text-xs font-bold flex items-center gap-1 animate-in fade-in zoom-in duration-300">
-                        <ShieldCheck className="w-4 h-4" /> Verified
-                      </span>
+                    </div>
+
+                    <PhoneInput
+                      value={phoneValue}
+                      disabled={isPhoneVerified || isOtpLoading}
+                      onChange={(val) => {
+                        const changed = val.phone !== phoneValue.phone || val.countryCode !== phoneValue.countryCode;
+                        setPhoneValue(val);
+                        if (changed) {
+                          setIsPhoneVerified(false);
+                          setIsPhoneOtpSent(false);
+                          setPhoneOtpAttemptedNumber('');
+                        }
+                      }}
+                      placeholder={phoneValue.countryCode === '91' ? 'Enter 10-digit mobile number' : 'Enter phone number'}
+                    />
+
+                    {isPhoneOtpSent && !isPhoneVerified && (
+                      <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-gray-700">Enter Security Code</Label>
+                          <button
+                            type="button"
+                            onClick={handleSendPhoneOtp}
+                            disabled={isOtpLoading}
+                            className="text-[11px] font-bold text-blue-600 hover:underline disabled:text-gray-400"
+                          >
+                            Resend Code
+                          </button>
+                        </div>
+
+                        <Input
+                          type="text"
+                          placeholder="······"
+                          maxLength={6}
+                          value={phoneOtp}
+                          onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          disabled={isOtpLoading}
+                          className="w-full h-11 text-center text-xl tracking-[0.5em] font-medium border border-gray-200 bg-gray-50/30 focus:bg-white rounded-lg transition-all"
+                        />
+                      </div>
                     )}
                   </div>
 
-                  <PhoneInput
-                    value={phoneValue}
-                    disabled={isPhoneVerified || isOtpLoading}
-                    onChange={(val) => {
-                      const changed = val.phone !== phoneValue.phone || val.countryCode !== phoneValue.countryCode;
-                      setPhoneValue(val);
-                      if (changed) {
-                        setIsPhoneVerified(false);
-                        setIsPhoneOtpSent(false);
-                        setPhoneOtpAttemptedNumber('');
-                      }
-                    }}
-                    placeholder={phoneValue.countryCode === '91' ? 'Enter 10-digit mobile number' : 'Enter phone number'}
-                  />
+                  {/* Main Action Button */}
+                  <Button
+                    type="submit"
+                    disabled={isOtpLoading || (!isPhoneVerified && phoneValue.phone.length < 10 && phoneValue.countryCode === '91')}
+                    className="w-full h-11 text-base font-bold bg-[#422A3C] hover:bg-[#34202F] text-white rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    {isOtpLoading ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : isPhoneVerified ? (
+                      "Continue to Registration"
+                    ) : isPhoneOtpSent ? (
+                      "Verify OTP"
+                    ) : (
+                      "Continue"
+                    )}
+                  </Button>
 
-                  {isPhoneOtpSent && !isPhoneVerified && (
-                    <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold text-gray-700">Enter Security Code</Label>
-                        <button
-                          type="button"
-                          onClick={handleSendPhoneOtp}
-                          disabled={isOtpLoading}
-                          className="text-[11px] font-bold text-blue-600 hover:underline disabled:text-gray-400"
-                        >
-                          Resend Code
-                        </button>
-                      </div>
+                  <div className="relative my-4 flex items-center py-0">
+                    <div className="flex-grow border-t border-gray-200"></div>
+                    <span className="px-3 text-sm font-bold text-gray-400">OR</span>
+                    <div className="flex-grow border-t border-gray-200"></div>
+                  </div>
 
-                      <Input
-                        type="text"
-                        placeholder="······"
-                        maxLength={6}
-                        value={phoneOtp}
-                        onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        disabled={isOtpLoading}
-                        className="w-full h-11 text-center text-xl tracking-[0.5em] font-medium border border-gray-200 bg-gray-50/30 focus:bg-white rounded-lg transition-all"
-                      />
-                    </div>
-                  )}
-                </div>
+                  {/* Google Button */}
+                  <button
+                    type="button"
+                    onClick={() => {/* Add Google OAuth handler */ }}
+                    className="w-full h-10 pt-1 text-sm font-bold bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-3"
+                  >
+                    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                    </svg>
+                    <span>Sign up with Google</span>
+                  </button>
 
-                {/* Main Action Button */}
-                <Button
-                  type="submit"
-                  disabled={isOtpLoading || (!isPhoneVerified && phoneValue.phone.length < 10 && phoneValue.countryCode === '91')}
-                  className="w-full h-11 text-base font-bold bg-[#422A3C] hover:bg-[#34202F] text-white rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {isOtpLoading ? (
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                  ) : isPhoneVerified ? (
-                    "Continue to Registration"
-                  ) : isPhoneOtpSent ? (
-                    "Verify OTP"
-                  ) : (
-                    "Continue"
-                  )}
-                </Button>
-
-                <div className="relative my-4 flex items-center py-0">
-                  <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="px-3 text-sm font-bold text-gray-400">OR</span>
-                  <div className="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                {/* Google Button */}
-                <button
-                  type="button"
-                  onClick={() => {/* Add Google OAuth handler */ }}
-                  className="w-full h-10 pt-1 text-sm font-bold bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-3"
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                  <span>Sign up with Google</span>
-                </button>
-
-                <div className="text-center pt-1 text-sm text-gray-500">
-                  Already have an account?{' '}
-                  <Link href="/client-login" className="text-[#422A3C] font-bold hover:underline">
-                    Sign in
-                  </Link>
-                </div>
-              </form>
-            </div>
-          ) : (
+                  <div className="text-center pt-1 text-sm text-gray-500">
+                    Already have an account?{' '}
+                    <Link href="/client-login" className="text-[#422A3C] font-bold hover:underline">
+                      Sign in
+                    </Link>
+                  </div>
+                </form>
+              </div>
+            ) : (
               <div className="space-y-4 overflow-y-auto">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* First Name and Last Name */}
@@ -853,7 +853,7 @@ function ClientRegisterForm() {
                         value={email}
                         disabled={isEmailVerified || isOtpLoading}
                         onChange={(e) => {
-                          setEmail(e.target.value.replace(/[^a-zA-Z0-9@.]/g, ''));
+                          setEmail(e.target.value);
                           setIsEmailVerified(false);
                           setIsEmailOtpSent(false);
                         }}
