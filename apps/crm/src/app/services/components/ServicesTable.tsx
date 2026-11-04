@@ -76,7 +76,7 @@ const ServicesTable = ({
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       <Image
-                        src={service.image || "https://placehold.co/40x40.png"}
+                        src={service.image || service.serviceImage || "https://placehold.co/40x40.png"}
                         alt={service.name}
                         width={40}
                         height={40}

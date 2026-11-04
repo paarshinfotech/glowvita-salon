@@ -47,7 +47,7 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: null,
-      maxlength: 200, // Limit URL/path length
+      maxlength: 1000, // Limit URL/path length
     },
     gender: {
       type: String,

@@ -744,10 +744,10 @@ const ServiceFormModal = ({ isOpen, onClose, service, type }: ServiceFormModalPr
           <div className="flex-1 overflow-y-auto px-5 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {/* Service Image Section */}
             <div className="mb-4">
-              {service?.image ? (
+              {(service?.image || service?.serviceImage) ? (
                 <div className="relative w-48 h-48 mx-auto rounded-lg overflow-hidden shadow-md border">
                   <Image
-                    src={service.image}
+                    src={service.image || service.serviceImage || ""}
                     alt={service?.name || 'Service image'}
                     fill
                     className="object-cover"

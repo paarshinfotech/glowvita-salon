@@ -33,11 +33,16 @@ export const POST = authMiddlewareCrm(async (req) => {
     // Handle image upload if provided
     let imageUrl = null;
     if (service.image) {
-      const fileName = `vendor-service-${vendorId}-${Date.now()}`;
-      imageUrl = await uploadBase64(service.image, fileName);
+      if (service.image.startsWith("http://") || service.image.startsWith("https://")) {
+        // Already an uploaded URL (e.g. copied from admin super data master service)
+        imageUrl = service.image;
+      } else {
+        const fileName = `vendor-service-${vendorId}-${Date.now()}`;
+        imageUrl = await uploadBase64(service.image, fileName);
 
-      if (!imageUrl) {
-        console.warn('Failed to upload service image for service:', service.name);
+        if (!imageUrl) {
+          console.warn('Failed to upload service image for service:', service.name);
+        }
       }
     }
 
@@ -155,18 +160,23 @@ export const PUT = authMiddlewareCrm(async (req) => {
       if (vendorServices) {
         const existingService = vendorServices.services.id(service._id);
         if (service.image) {
-          // Upload new image to VPS
-          const fileName = `vendor-service-${vendorId}-${Date.now()}`;
-          imageUrl = await uploadBase64(service.image, fileName);
+          if (service.image.startsWith("http://") || service.image.startsWith("https://")) {
+            // Already an uploaded URL (e.g. copied from admin super data master service)
+            imageUrl = service.image;
+          } else {
+            // Upload new image to VPS
+            const fileName = `vendor-service-${vendorId}-${Date.now()}`;
+            imageUrl = await uploadBase64(service.image, fileName);
 
-          if (!imageUrl) {
-            console.warn('Failed to upload service image for service:', service.name);
-            imageUrl = service.image; // Keep the original value if upload failed
-          }
+            if (!imageUrl) {
+              console.warn('Failed to upload service image for service:', service.name);
+              imageUrl = service.image; // Keep the original value if upload failed
+            }
 
-          // Delete old image from VPS if it exists and is different
-          if (existingService && existingService.image && existingService.image !== imageUrl) {
-            await deleteFile(existingService.image);
+            // Delete old image from VPS if it exists and is different
+            if (existingService && existingService.image && existingService.image !== imageUrl) {
+              await deleteFile(existingService.image);
+            }
           }
         } else {
           // If image is null/empty, delete the old image
