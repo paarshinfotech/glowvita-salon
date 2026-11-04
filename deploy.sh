@@ -1,25 +1,35 @@
 
 #!/bin/bash
+
 set -e
 
 echo "[INFO] Starting GlowVitaSalon deployment..."
 
-echo "[INFO] Checking Git working tree..."
-if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "[ERROR] Local changes detected. Commit or discard them first."
-    exit 1
-fi
+# Navigate to project directory automatically
+cd "$(dirname "$0")"
 
-echo "[INFO] Fetching latest code..."
+echo "[INFO] Fetching latest code from GitHub..."
+
 git fetch origin main
 
 echo "[INFO] Pulling latest code..."
+
 git pull --ff-only origin main
 
-echo "[INFO] Building and deploying Docker containers..."
-docker compose -f docker-compose.prod.yml up -d --build
+echo "[INFO] Stopping existing containers..."
 
-echo "[INFO] Removing unused Docker images..."
-docker image prune -f
+docker-compose -f docker-compose.prod.yml down
+
+echo "[INFO] Building Docker images..."
+
+docker-compose -f docker-compose.prod.yml build
+
+echo "[INFO] Starting containers..."
+
+docker-compose -f docker-compose.prod.yml up -d
+
+echo "[INFO] Checking container status..."
+
+docker-compose -f docker-compose.prod.yml ps
 
 echo "[SUCCESS] GlowVitaSalon deployment completed!"
