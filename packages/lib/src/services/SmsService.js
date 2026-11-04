@@ -85,8 +85,10 @@ class SmsService {
     }
 
     try {
-      const message = `Dear Customer, Your verification code for using GlowVita is ${otp}. Thank you. Call support if required 
--Nashik First`;
+      // DLT Approved Template (Sender: TSOFTA | Template ID: 1777178680409257047)
+      // Portal template: Dear Applicant, OTP for authentication using ERP is {#alp#}. OTP will expire in 10 minutes. Thank you. TSOFTA
+      const message = `Dear Applicant, OTP for authentication using ERP is ${otp}. OTP will expire in 10 minutes. Thank you. TSOFTA`
+
       const params = new URLSearchParams({
         authkey: this.apiKey,
         mobiles: internationalNumber, // already fully formatted by caller
