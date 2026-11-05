@@ -135,6 +135,28 @@ fi
 # 8. Save current Nginx configuration
 BACKUP="$HOME/nginx-before-deploy.conf"
 
+restore_nginx() {
+    echo "[INFO] Restoring previous Nginx configuration..."
+
+    if ! sudo cp "$BACKUP" "$NGINX_CONF"; then
+        echo "[CRITICAL] Could not restore Nginx configuration."
+        return 1
+    fi
+
+    if ! sudo nginx -t; then
+        echo "[CRITICAL] Restored Nginx configuration is invalid."
+        return 1
+    fi
+
+    if ! sudo systemctl reload nginx; then
+        echo "[CRITICAL] Nginx reload failed during rollback."
+        return 1
+    fi
+
+    echo "[OK] Previous Nginx configuration restored and reloaded."
+}
+
+
 echo "[INFO] Backing up current Nginx configuration..."
 sudo cp "$NGINX_CONF" "$BACKUP"
 
@@ -149,15 +171,21 @@ sudo sed -i \
 
 if ! sudo nginx -t; then
     echo "[ERROR] Nginx validation failed. Restoring previous configuration."
-    sudo cp "$BACKUP" "$NGINX_CONF"
-    sudo nginx -t && sudo systemctl reload nginx
+    if ! restore_nginx; then
+        echo "[CRITICAL] Automatic rollback failed."
+        echo "[CRITICAL] Check Nginx configuration manually."
+        exit 1
+    fi
     exit 1
 fi
 
 if ! sudo systemctl reload nginx; then
     echo "[ERROR] Nginx reload failed. Restoring previous configuration."
-    sudo cp "$BACKUP" "$NGINX_CONF"
-    sudo nginx -t && sudo systemctl reload nginx
+    if ! restore_nginx; then
+        echo "[CRITICAL] Automatic rollback failed."
+        echo "[CRITICAL] Check Nginx configuration manually."
+        exit 1
+    fi
     exit 1
 fi
 
@@ -189,8 +217,11 @@ if ! check_domain "glowvitasalon.com" ||
     echo "[ERROR] Post-switch verification failed."
     echo "[INFO] Rolling back to $ACTIVE..."
 
-    sudo cp "$BACKUP" "$NGINX_CONF"
-    sudo nginx -t && sudo systemctl reload nginx
+    if ! restore_nginx; then
+        echo "[CRITICAL] Automatic rollback failed."
+        echo "[CRITICAL] Check Nginx configuration manually."
+        exit 1
+    fi
 
     echo "[INFO] Previous environment remains available."
     exit 1
