@@ -67,7 +67,7 @@ ENV NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID
 RUN turbo run build --filter=crm
 
 # Runner
-FROM node:20-bullseye AS runner
+FROM node:20-bookworm AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
