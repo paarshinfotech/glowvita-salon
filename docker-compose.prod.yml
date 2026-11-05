@@ -21,7 +21,7 @@ services:
     volumes:
     - /home/glowvita/uploads:/home/glowvita/uploads
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   crm:
     build:
@@ -44,7 +44,7 @@ services:
     volumes:
     - /home/glowvita/uploads:/home/glowvita/uploads
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
 
   admin:
     build:
@@ -67,4 +67,4 @@ services:
     volumes:
     - /home/glowvita/uploads:/home/glowvita/uploads
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
