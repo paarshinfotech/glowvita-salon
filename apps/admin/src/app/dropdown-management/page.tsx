@@ -243,7 +243,11 @@ const DropdownManager = ({
                 </div>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="sm:max-w-lg">
+                    <DialogContent 
+                        className="sm:max-w-lg"
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <form onSubmit={handleSave}>
                             <DialogHeader>
                                 <DialogTitle>{currentItem?._id ? 'Edit' : 'Add'} Item</DialogTitle>
@@ -292,7 +296,10 @@ const DropdownManager = ({
                 </Dialog>
 
                 <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                    <DialogContent>
+                    <DialogContent
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <DialogHeader>
                             <DialogTitle>Delete Item?</DialogTitle>
                             <DialogDescription>
@@ -497,7 +504,11 @@ const ServiceCategoryManager = () => {
                 </div>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="sm:max-w-lg">
+                    <DialogContent 
+                        className="sm:max-w-lg"
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <form onSubmit={handleSave}>
                             <DialogHeader>
                                 <DialogTitle>{currentItem?._id ? 'Edit' : 'Add'} Category</DialogTitle>
@@ -537,7 +548,10 @@ const ServiceCategoryManager = () => {
                 </Dialog>
 
                 <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                    <DialogContent>
+                    <DialogContent
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <DialogHeader>
                             <DialogTitle>Delete Category?</DialogTitle>
                             <DialogDescription>
@@ -757,7 +771,11 @@ const ServiceManager = () => {
                 </div>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="sm:max-w-lg">
+                    <DialogContent 
+                        className="sm:max-w-lg"
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <form onSubmit={handleSave}>
                             <DialogHeader>
                                 <DialogTitle>{currentItem?._id ? 'Edit' : 'Add'} Service</DialogTitle>
@@ -810,7 +828,10 @@ const ServiceManager = () => {
                 </Dialog>
 
                 <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                    <DialogContent>
+                    <DialogContent
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <DialogHeader>
                             <DialogTitle>Delete Service?</DialogTitle>
                             <DialogDescription>
@@ -1057,7 +1078,11 @@ const ProductMasterManager = () => {
                 </div>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent 
+                        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <form onSubmit={handleSave}>
                             <DialogHeader>
                                 <DialogTitle>{currentItem?._id ? 'Edit' : 'Add'} Product Master</DialogTitle>
@@ -1145,7 +1170,10 @@ const ProductMasterManager = () => {
                 </Dialog>
 
                 <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                    <DialogContent>
+                    <DialogContent
+                        onPointerDownOutside={(e) => e.preventDefault()}
+                        onInteractOutside={(e) => e.preventDefault()}
+                    >
                         <DialogHeader>
                             <DialogTitle>Delete Product Master?</DialogTitle>
                             <DialogDescription>
@@ -1369,7 +1397,11 @@ const HierarchicalManager = ({ title, description, data, onUpdate, isLoading }: 
             </CardContent>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent 
+                    className="sm:max-w-md"
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => e.preventDefault()}
+                >
                     <form onSubmit={handleSave}>
                         <DialogHeader>
                             <DialogTitle>
@@ -1418,7 +1450,10 @@ const HierarchicalManager = ({ title, description, data, onUpdate, isLoading }: 
             </Dialog>
 
             <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                <DialogContent>
+                <DialogContent
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => e.preventDefault()}
+                >
                     <DialogHeader>
                         <DialogTitle>Delete Item?</DialogTitle>
                         <DialogDescription>
@@ -1841,7 +1876,11 @@ const ProductCategoryManager = () => {
 
             {/* Add/Edit Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent 
+                    className="sm:max-w-md"
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => e.preventDefault()}
+                >
                     <form onSubmit={handleSave}>
                         <DialogHeader>
                             <DialogTitle>
@@ -1919,7 +1958,10 @@ const ProductCategoryManager = () => {
 
             {/* Delete Confirmation Modal */}
             <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                <DialogContent>
+                <DialogContent
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => e.preventDefault()}
+                >
                     <DialogHeader>
                         <DialogTitle>Delete Category?</DialogTitle>
                         <DialogDescription>
