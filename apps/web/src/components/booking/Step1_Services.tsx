@@ -711,12 +711,12 @@ export function Step1_Services({
                     {/* Selected Badge Removed */}
 
                     {/* Image Section */}
-                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 mr-3">
+                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 mr-3 border border-gray-200">
                       <Image
                         src={service.image || `https://picsum.photos/seed/${service.name}/200/200.png`}
                         alt={service.name}
                         fill
-                        className="object-cover"
+                        className="object-fill"
                         data-ai-hint="beauty service"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;

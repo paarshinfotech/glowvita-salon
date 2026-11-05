@@ -169,7 +169,7 @@ const useTaxFeeSettings = () => {
     const fetchTaxFeeSettings = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/tax-fees');
+        const response = await fetch('/api/tax-fees', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           setTaxFeeSettings(data);
@@ -4964,7 +4964,13 @@ function BookingPageContent() {
                 {priceBreakdown && priceBreakdown.platformFee > 0 && (
                   <div className="flex flex-nowrap items-center justify-between text-sm gap-3">
                     <span className="text-muted-foreground truncate">
-                      Platform Fee {priceBreakdown.taxFeeSettings?.platformFee ? `(${priceBreakdown.taxFeeSettings.platformFee}%)` : ''}
+                      Platform Fee {
+                        priceBreakdown.taxFeeSettings?.platformFeeType === 'fixed'
+                          ? `(₹${priceBreakdown.taxFeeSettings.platformFee})`
+                          : priceBreakdown.taxFeeSettings?.platformFee != null
+                            ? `(${priceBreakdown.taxFeeSettings.platformFee}%)`
+                            : ''
+                      }
                     </span>
                     <span className="whitespace-nowrap shrink-0"><img src="/uploads/rupee42.png" alt="rupee" className="inline-block h-4 w-4 mr-1 align-text-bottom" />{priceBreakdown.platformFee.toFixed(2)}/-</span>
                   </div>
@@ -4972,7 +4978,13 @@ function BookingPageContent() {
                 {priceBreakdown && priceBreakdown.serviceTax > 0 && (
                   <div className="flex flex-nowrap items-center justify-between text-sm gap-3">
                     <span className="text-muted-foreground truncate">
-                      GST & Other Taxes {priceBreakdown.taxFeeSettings?.serviceTax ? `(${priceBreakdown.taxFeeSettings.serviceTax}%)` : ''}
+                      GST &amp; Other Taxes {
+                        priceBreakdown.taxFeeSettings?.serviceTaxType === 'fixed'
+                          ? `(₹${priceBreakdown.taxFeeSettings.serviceTax})`
+                          : priceBreakdown.taxFeeSettings?.serviceTax != null
+                            ? `(${priceBreakdown.taxFeeSettings.serviceTax}%)`
+                            : ''
+                      }
                     </span>
                     <span className="whitespace-nowrap shrink-0"><img src="/uploads/rupee42.png" alt="rupee" className="inline-block h-4 w-4 mr-1 align-text-bottom" />{priceBreakdown.serviceTax.toFixed(2)}/-</span>
                   </div>

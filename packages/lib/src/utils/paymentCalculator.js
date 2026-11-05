@@ -7,7 +7,7 @@ async function fetchTaxFeeSettings() {
   try {
     // Only attempt to fetch in browser environment
     if (typeof window !== 'undefined') {
-      const response = await fetch('/api/tax-fees');
+      const response = await fetch('/api/tax-fees', { cache: 'no-store' });
       if (response.ok) {
         const settings = await response.json();
         return settings;

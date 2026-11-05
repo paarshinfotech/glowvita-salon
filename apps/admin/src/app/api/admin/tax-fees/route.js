@@ -27,16 +27,16 @@ const transformSettings = (settings) => {
   }
 
   return {
-    platformFee: settings.platformFee || 15,
+    platformFee: settings.platformFee != null ? settings.platformFee : 15,
     platformFeeType: settings.platformFeeType || 'percentage',
     platformFeeEnabled: settings.platformFeeEnabled !== false,
-    serviceTax: settings.serviceTax || 18, // This is GST
+    serviceTax: settings.serviceTax != null ? settings.serviceTax : 18, // This is GST
     serviceTaxType: settings.serviceTaxType || 'percentage',
     serviceTaxEnabled: settings.serviceTaxEnabled !== false,
-    productPlatformFee: settings.productPlatformFee || 10,
+    productPlatformFee: settings.productPlatformFee != null ? settings.productPlatformFee : 10,
     productPlatformFeeType: settings.productPlatformFeeType || 'percentage',
     productPlatformFeeEnabled: settings.productPlatformFeeEnabled !== false,
-    productGST: settings.productGST || 18,
+    productGST: settings.productGST != null ? settings.productGST : 18,
     productGSTType: settings.productGSTType || 'percentage',
     productGSTEnabled: settings.productGSTEnabled !== false,
     _id: settings._id

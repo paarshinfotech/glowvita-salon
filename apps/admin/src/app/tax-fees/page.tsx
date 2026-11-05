@@ -51,10 +51,10 @@ export default function TaxAndFeesPage() {
   useEffect(() => {
     if (currentSettings) {
       setSettings({
-        platformFee: currentSettings.platformFee || 15,
-        serviceTax: currentSettings.serviceTax || 18,
-        productPlatformFee: currentSettings.productPlatformFee || 10,
-        productGST: currentSettings.productGST || 18,
+        platformFee: currentSettings.platformFee != null ? currentSettings.platformFee : 15,
+        serviceTax: currentSettings.serviceTax != null ? currentSettings.serviceTax : 18,
+        productPlatformFee: currentSettings.productPlatformFee != null ? currentSettings.productPlatformFee : 10,
+        productGST: currentSettings.productGST != null ? currentSettings.productGST : 18,
         platformFeeType: currentSettings.platformFeeType || 'percentage',
         serviceTaxType: currentSettings.serviceTaxType || 'percentage',
         productPlatformFeeType: currentSettings.productPlatformFeeType || 'percentage',

@@ -357,16 +357,18 @@ export default function ServicesPage() {
                                                 currentItems.map((service) => (
                                                     <TableRow key={service._id}>
                                                         <TableCell>
-                                                            <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                                                            <div className="relative h-12 w-12 rounded-lg overflow-hidden border">
                                                                 {service.serviceImage ? (
                                                                     <Image
                                                                         src={service.serviceImage}
                                                                         alt={service.name}
                                                                         fill
-                                                                        className="object-cover"
+                                                                        className="object-fill"
                                                                     />
                                                                 ) : (
-                                                                    <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                                                                    <div className="h-full w-full bg-muted flex items-center justify-center">
+                                                                        <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </TableCell>
@@ -479,13 +481,13 @@ export default function ServicesPage() {
                             <div className="flex-1 min-h-0 overflow-y-auto">
                                 {/* Banner section */}
                                 {selectedService.serviceImage ? (
-                                    <div className="relative h-32 w-full">
+                                    <div className="relative h-44 w-full overflow-hidden border-b">
                                         <img
                                             src={selectedService.serviceImage}
                                             alt={selectedService.name}
-                                            className="object-cover w-full h-full"
+                                            className="w-full h-full object-fill"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-background/30 to-transparent pointer-events-none" />
                                         <div className="absolute top-4 right-4">
                                             {selectedService.status === 'approved' ? (
                                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white shadow-md border border-emerald-400/20 backdrop-blur-md">

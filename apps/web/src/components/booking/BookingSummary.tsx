@@ -854,14 +854,30 @@ export function BookingSummary({
 
               {priceBreakdown && priceBreakdown.platformFee > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-black">Platform Fee {priceBreakdown.taxFeeSettings?.platformFee ? `(${priceBreakdown.taxFeeSettings.platformFee}%)` : ''}</span>
+                  <span className="text-black">Platform Fee {
+                    priceBreakdown.taxFeeSettings?.platformFeeEnabled !== false
+                      ? (priceBreakdown.taxFeeSettings?.platformFeeType === 'fixed'
+                          ? `(₹${priceBreakdown.taxFeeSettings.platformFee})`
+                          : priceBreakdown.taxFeeSettings?.platformFee != null
+                            ? `(${priceBreakdown.taxFeeSettings.platformFee}%)`
+                            : '')
+                      : ''
+                  }</span>
                   <span className="text-black">₹{priceBreakdown.platformFee.toFixed(2)}</span>
                 </div>
               )}
 
               {priceBreakdown && priceBreakdown.serviceTax > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-black">GST {priceBreakdown.taxFeeSettings?.serviceTax ? `(${priceBreakdown.taxFeeSettings.serviceTax}%)` : ''}</span>
+                  <span className="text-black">GST {
+                    priceBreakdown.taxFeeSettings?.serviceTaxEnabled !== false
+                      ? (priceBreakdown.taxFeeSettings?.serviceTaxType === 'fixed'
+                          ? `(₹${priceBreakdown.taxFeeSettings.serviceTax})`
+                          : priceBreakdown.taxFeeSettings?.serviceTax != null
+                            ? `(${priceBreakdown.taxFeeSettings.serviceTax}%)`
+                            : '')
+                      : ''
+                  }</span>
                   <span className="text-black">₹{priceBreakdown.serviceTax.toFixed(2)}</span>
                 </div>
               )}

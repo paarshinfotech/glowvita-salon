@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import _db from "@repo/lib/db";
 import TaxFeeSettings from "@repo/lib/models/admin/TaxFeeSettings";
 
+// Force dynamic rendering — never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Initialize database connection
 await _db();
 
@@ -25,16 +29,16 @@ const transformSettings = (settings) => {
   }
 
   return {
-    platformFee: settings.platformFee || 15,
+    platformFee: settings.platformFee != null ? settings.platformFee : 15,
     platformFeeType: settings.platformFeeType || 'percentage',
     platformFeeEnabled: settings.platformFeeEnabled !== false,
-    serviceTax: settings.serviceTax || 18, // This is GST
+    serviceTax: settings.serviceTax != null ? settings.serviceTax : 18, // This is GST
     serviceTaxType: settings.serviceTaxType || 'percentage',
     serviceTaxEnabled: settings.serviceTaxEnabled !== false,
-    productPlatformFee: settings.productPlatformFee || 10,
+    productPlatformFee: settings.productPlatformFee != null ? settings.productPlatformFee : 10,
     productPlatformFeeType: settings.productPlatformFeeType || 'percentage',
     productPlatformFeeEnabled: settings.productPlatformFeeEnabled !== false,
-    productGST: settings.productGST || 18,
+    productGST: settings.productGST != null ? settings.productGST : 18,
     productGSTType: settings.productGSTType || 'percentage',
     productGSTEnabled: settings.productGSTEnabled !== false,
     _id: settings._id
@@ -50,7 +54,9 @@ export async function GET() {
     }
 
     const settings = await TaxFeeSettings.findOne().sort({ updatedAt: -1 });
-    return NextResponse.json(transformSettings(settings), { status: 200 });
+    const response = NextResponse.json(transformSettings(settings), { status: 200 });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return response;
   } catch (error) {
     console.error("Error fetching tax fee settings:", error);
     return NextResponse.json(
