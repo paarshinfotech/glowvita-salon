@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import VendorModel from "@repo/lib/models/Vendor/Vendor.model";
 import StaffModel from "@repo/lib/models/Vendor/Staff.model";
 import SubscriptionPlan from "@repo/lib/models/admin/SubscriptionPlan.model";
+import RegionModel from "@repo/lib/models/admin/Region.model";
 import { ReferralModel, V2VSettingsModel, C2VSettingsModel } from "../../../../../../../../packages/lib/src/models/admin/Reffer.model.js";
 import UserModel from "@repo/lib/models/user/User.model";
 import _db from "@repo/lib/db";
@@ -17,7 +18,7 @@ const generateReferralCode = async (businessName) => {
   let referralCode;
   let isUnique = false;
   // Use a more robust prefix generation
-  const namePrefix = (businessName || "VENDOR").replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 4);
+  const namePrefix = ((businessName || "VENDOR").replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 4)) || "VEND";
 
   while (!isUnique) {
     const randomNumbers = Math.floor(1000 + Math.random() * 9000); // Generates 4-digit number
@@ -192,7 +193,10 @@ export async function POST(req) {
     } = body;
 
     const gstNo = incomingGstNo || '';
-    const referralCode = incomingReferralCode || '';
+    // Generate a unique referral code if none provided
+    const referralCode = (incomingReferralCode && incomingReferralCode.trim() !== '')
+      ? incomingReferralCode.trim()
+      : await generateReferralCode(businessName);
 
     // 1️⃣ Validate required fields for initial account creation
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -214,12 +218,19 @@ export async function POST(req) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 5️⃣ Assign a default trial plan
-    const trialPlan = await SubscriptionPlan.findOne({ name: 'Trial Plan' });
+    const trialPlan = await SubscriptionPlan.findOne({
+      $or: [
+        { name: 'Trial Plan' },
+        { name: /trial/i },
+        { planType: 'trial' }
+      ]
+    });
     if (!trialPlan) {
-      return NextResponse.json({ message: "Default trial plan for vendors not found." }, { status: 500 });
+      return NextResponse.json({ message: "Default trial plan for vendors not found. Please contact support." }, { status: 500 });
     }
+    const durationDays = typeof trialPlan.duration === 'number' && trialPlan.duration > 0 ? trialPlan.duration : 30;
     const subscriptionEndDate = new Date();
-    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + trialPlan.duration);
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + durationDays);
 
     // 6️⃣ Auto-Assign Region based on City/State/Location
     // Ensure location has proper default values
@@ -227,7 +238,22 @@ export async function POST(req) {
 
     const { assignRegion } = await import("@repo/lib/utils/assignRegion.js");
     // Pass locationData for geospatial matching
-    const regionId = await assignRegion(city, state, locationData);
+    let regionId = await assignRegion(city, state, locationData);
+
+    // If no matching region found for coordinates/city, fallback to any active region
+    if (!regionId) {
+      const fallbackRegion = await RegionModel.findOne({ isActive: true });
+      if (fallbackRegion) {
+        regionId = fallbackRegion._id;
+      }
+    }
+
+    if (!regionId) {
+      return NextResponse.json(
+        { error: `No active region available for ${city || 'your area'}. Please contact administrator.` },
+        { status: 400 }
+      );
+    }
 
     // 7️⃣ Create vendor with minimal required data + any other data provided
 
@@ -246,7 +272,7 @@ export async function POST(req) {
       pincode: pincode || '000000',
       address: address || 'N/A',
       category: category || 'unisex',
-      subCategories: subCategories && subCategories.length > 0 ? subCategories : ['shop'],
+      subCategories: subCategories && subCategories.length > 0 ? subCategories : ['at-salon'],
       location: locationData,
       // Add baseLocation with default values to satisfy the required fields
       baseLocation: locationData,
@@ -395,6 +421,6 @@ export async function POST(req) {
     return NextResponse.json({ message: "Account created successfully. Proceed to onboarding.", vendor: vendorData }, { status: 201 });
   } catch (err) {
     console.error("Vendor Registration Error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }
 }
