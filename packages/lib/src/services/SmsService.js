@@ -101,7 +101,7 @@ class SmsService {
 
       console.log(`[SMS OTP] Dispatching OTP to: ${safeLog}`);
       const url = `http://control.bestsms.co.in/api/sendhttp.php?${params.toString()}`;
-      const response = await fetch(url, { method: 'GET' });
+      const response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(8000) });
       const text = await response.text();
       console.log("url", url)
 
@@ -146,7 +146,7 @@ class SmsService {
       });
 
       const url = `http://control.bestsms.co.in/api/sendhttp.php?${params.toString()}`;
-      const response = await fetch(url, { method: 'GET' });
+      const response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(8000) });
       const text = await response.text();
       console.log("SMS API BESTSMS RESPONSE", text);
 

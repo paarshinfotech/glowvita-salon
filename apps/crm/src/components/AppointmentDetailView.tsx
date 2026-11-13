@@ -876,7 +876,6 @@ export function AppointmentDetailView({
   };
 
   const handleStatusChange = useCallback(async (newStatus: string) => {
-    const toastId = toast.loading('Updating status...');
     if (!appointment || !onStatusChange) return;
 
     if (newStatus === 'cancelled') {
@@ -886,13 +885,15 @@ export function AppointmentDetailView({
       return;
     }
 
+    const toastId = toast.loading('Updating status...');
     setIsStatusChanging(true);
+    setOverrideStatus(newStatus);
     try {
       // Call the parent's status change handler with the new status
       await onStatusChange(newStatus);
-      toast.success(`Status updated to ${newStatus}`);
     } catch (error: any) {
       console.error('Error updating status:', error);
+      setOverrideStatus(null);
       toast.error('Failed to update status', {
         description: error?.message || 'Please try again.'
       });

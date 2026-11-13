@@ -762,8 +762,10 @@ export const PUT = withSubscriptionCheck(async (req, { params }) => {
             { path: 'staff', select: 'fullName position email phone' }
         ]);
 
-        // Send email notifications
-        await sendAppointmentEmail(updatedAppointment, vendorId, updatedAppointment.status, existingAppointment.status);
+        // Send email notifications in the background so HTTP response is instant
+        sendAppointmentEmail(updatedAppointment, vendorId, updatedAppointment.status, existingAppointment.status).catch(err => {
+            console.error('Background sendAppointmentEmail error in PUT:', err);
+        });
 
         return NextResponse.json({
             success: true,
@@ -901,8 +903,10 @@ export const PATCH = withSubscriptionCheck(async (req, { params }) => {
             }
 
             if (updatedAppointment) {
-                // Send email notifications
-                await sendAppointmentEmail(updatedAppointment, vendorId, 'cancelled', oldStatus, rawClientId);
+                // Send email notifications in the background so HTTP response is instant
+                sendAppointmentEmail(updatedAppointment, vendorId, 'cancelled', oldStatus, rawClientId).catch(err => {
+                    console.error('Background sendAppointmentEmail error (cancelled):', err);
+                });
             }
 
             // Sync Commission on PATCH
@@ -1024,8 +1028,10 @@ export const PATCH = withSubscriptionCheck(async (req, { params }) => {
                 { path: 'service', select: 'name duration price' }
             ]);
 
-            // Send email notifications
-            await sendAppointmentEmail(updatedAppointment, vendorId, updatedAppointment.status, oldStatus, rawClientId);
+            // Send email/SMS notifications in the background so HTTP response is instant
+            sendAppointmentEmail(updatedAppointment, vendorId, updatedAppointment.status, oldStatus, rawClientId).catch(err => {
+                console.error('Background sendAppointmentEmail error in PATCH:', err);
+            });
 
             return NextResponse.json({
                 message: "Appointment status updated successfully",

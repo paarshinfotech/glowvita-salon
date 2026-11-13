@@ -778,6 +778,9 @@ export default function DailySchedulePage() {
       // Show success message
       toast.success(`Appointment ${newStatus} successfully`);
 
+      // Refresh appointments to show updated status on calendar grid
+      await refetchAppointments();
+
       // Close the detail view
       setSelectedAppointment(null);
 
@@ -789,7 +792,7 @@ export default function DailySchedulePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedAppointment, updateAppointmentStatus]);
+  }, [selectedAppointment, updateAppointmentStatus, refetchAppointments]);
 
   // Handle collect payment
   const handleCollectPayment = async (paymentData: { amount: number; paymentMethod: string; notes?: string }) => {
