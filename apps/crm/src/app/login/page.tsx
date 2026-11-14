@@ -11,6 +11,7 @@ import { setCrmAuth } from '@repo/store/slices/crmAuthSlice';
 import { useCrmAuth } from '@/hooks/useCrmAuth';
 import Link from 'next/link';
 import { NEXT_PUBLIC_WEB_URL } from "@repo/config/config";
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,9 +26,9 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isCrmAuthenticated) {
-      router.replace('/dashboard');
+      window.location.href = '/dashboard';
     }
-  }, [isCrmAuthenticated, router]);
+  }, [isCrmAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +47,35 @@ export default function LoginPage() {
       const response = await vendorLogin({ email, password }).unwrap();
 
       if (response.success) {
+        // Also ensure client-side cookie is set to prevent any middleware sync delay
+        Cookies.set('crm_access_token', response.access_token, {
+          expires: 1,
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+        });
+
+        if (response.access_token) {
+          Cookies.set('crm_access_token', response.access_token, {
+            expires: 1,
+            path: '/',
+            sameSite: 'lax',
+          });
+        }
+
         dispatch(setCrmAuth({ user: response.user, token: response.access_token, role: response.role, permissions: response.permissions }));
 
         toast.success('Login successful!', {
           description: 'Welcome back to your dashboard.',
-          duration: 3000,
+          duration: 2000,
         });
+
+        // Use window.location.href to perform a clean, fresh page transition into /dashboard
+        // and eliminate Next.js in-memory client router redirect loops
+        window.location.href = '/dashboard';
+
+        router.push('/dashboard');
+        router.refresh();
       }
     } catch (error: any) {
       toast.error('Login failed', {
@@ -111,11 +135,11 @@ export default function LoginPage() {
           <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 pointer-events-none"></div>
           <div className="absolute bottom-[39px] left-[29px] right-10 w-16 h-16 rounded-full bg-white/10 pointer-events-none"></div>
           <div className="absolute bottom-[7px] right-[30px] left-10 w-16 h-16 rounded-full bg-white/10 pointer-events-none"></div>
-         
+
           {/* User lock icon */}
           <div className="flex flex-col items-center relative z-10">
             <div className="w-[80px] h-[80px] flex items-center justify-center filter drop-shadow-sm">
-              <img src="/images/user-profile.png" alt="User profile" className="w-full h-full object-contain"/>
+              <img src="/images/user-profile.png" alt="User profile" className="w-full h-full object-contain" />
             </div>
           </div>
 

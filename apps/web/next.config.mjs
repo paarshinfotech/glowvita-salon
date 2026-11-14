@@ -18,6 +18,11 @@ import { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } from '../../packages/config/conf
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ["@repo/ui", "@repo/lib", "@repo/store", "@repo/config"],
+  staticPageGenerationTimeout: 300,
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
   env: {
     RAZORPAY_KEY_ID: RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: RAZORPAY_KEY_SECRET,

@@ -117,10 +117,7 @@ export function CrmLayout({ children }: { children: React.ReactNode; }) {
       }
     };
 
-    // Refresh immediately on mount
-    refreshTokenPeriodically();
-
-    // Set up interval for periodic refresh (15 minutes)
+    // Set up interval for periodic refresh (15 minutes) - do not refresh immediately on mount
     tokenRefreshInterval.current = setInterval(refreshTokenPeriodically, 15 * 60 * 1000);
 
     return () => {

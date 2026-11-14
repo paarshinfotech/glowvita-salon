@@ -81,17 +81,15 @@ export async function middleware(request: NextRequest) {
   const payload = await verifyJwt(token);
 
   if (!payload) {
-    // Check if token is empty/missing or if it's malformed
-    if (!token || token.trim() === '' || token.split('.').length !== 3) {
-      // This is a legitimate authentication issue - redirect to login
+    if (token) {
+      // Token exists but is invalid or expired - clear it and redirect to login
       const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.set('crm_access_token', '', { expires: new Date(0) });
+      response.cookies.set('crm_access_token', '', { expires: new Date(0), path: '/' });
       return response;
     }
 
-    // For other verification errors, try once more before clearing
-
-    return NextResponse.redirect(new URL('/not-found', request.url));
+    // No token present - redirect to login
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   const role = payload.role;

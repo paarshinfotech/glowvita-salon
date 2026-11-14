@@ -76,6 +76,7 @@ const baseQuery = async (args, api, extraOptions) => {
 
   const dynamicFetch = fetchBaseQuery({
     baseUrl: "", // We're already building the full URL
+    credentials: "include",
     prepareHeaders: (headers, { getState }) => {
       const state = getState();
       let token;

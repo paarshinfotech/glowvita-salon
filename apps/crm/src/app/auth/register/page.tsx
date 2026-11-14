@@ -156,7 +156,8 @@ const RegistrationFlow = () => {
   };
 
   const handleSuccess = () => {
-    router.push('/dashboard');
+    toast.success('Registration submitted successfully! Please log in with your credentials.');
+    router.push('/login');
   };
 
   const renderContent = () => {

@@ -9,8 +9,13 @@ if (!cached) {
 }
 
 const _db = async () => {
-  // Don't connect during build time
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
+  // Don't connect during build time — check all known build-phase signals
+  const isBuildPhase =
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_PHASE === 'phase-export' ||
+    process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.MONGODB_URI;
+
+  if (isBuildPhase) {
     console.log("Skipping MongoDB connection during build phase");
     mongoose.set('bufferCommands', false); // Disable buffering to prevent hanging
     return null;
@@ -33,9 +38,9 @@ const _db = async () => {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 30000, // 30 seconds (increased)
-      socketTimeoutMS: 75000, // 75 seconds (increased)
-      connectTimeoutMS: 30000, // 30 seconds
+      serverSelectionTimeoutMS: 5000,  // 5s — fail fast so builds don't hang
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
       maxPoolSize: 10, // Connection pool size
       minPoolSize: 2,
       maxIdleTimeMS: 60000, // Close idle connections after 60s
