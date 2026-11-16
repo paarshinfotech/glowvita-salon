@@ -17,6 +17,40 @@ async function verifyJwt(token) {
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+
+  // ── Handle CORS for API routes ─────────────────────────────────────────────
+  if (pathname.startsWith('/api/')) {
+    const origin = request.headers.get('origin');
+
+    // Handle preflight OPTIONS request
+    if (request.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 200 });
+      if (origin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Vary', 'Origin');
+      } else {
+        response.headers.set('Access-Control-Allow-Origin', '*');
+      }
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+      response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT,OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Admin-Authorization, Vendor-Authorization');
+      response.headers.set('Access-Control-Max-Age', '86400');
+      return response;
+    }
+
+    const response = NextResponse.next();
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Vary', 'Origin');
+    } else {
+      response.headers.set('Access-Control-Allow-Origin', '*');
+    }
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Methods', 'GET,DELETE,PATCH,POST,PUT,OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Admin-Authorization, Vendor-Authorization');
+    return response;
+  }
+
   const token = request.cookies.get('admin_access_token')?.value;
 
   const isAuthPage = pathname === '/login' || pathname === '/forgot-password' || pathname.startsWith('/reset-password');
@@ -48,7 +82,7 @@ export async function middleware(request) {
   return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
+// Match all routes except Next.js static files and images
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
