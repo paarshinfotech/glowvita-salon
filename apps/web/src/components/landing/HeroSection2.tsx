@@ -195,8 +195,19 @@ const HeroSection2 = () => {
     setIsSearching(true);
     const params = new URLSearchParams();
 
+    let catId = selectedCategoryId;
+    if (!catId && serviceInput && categoriesData?.categories) {
+      const trimmed = serviceInput.toLowerCase().trim();
+      const matched = categoriesData.categories.find(
+        (c: any) => c.name?.toLowerCase().trim() === trimmed
+      );
+      if (matched) {
+        catId = matched._id;
+      }
+    }
+
     if (serviceInput) params.append("serviceName", serviceInput);
-    if (selectedCategoryId) params.append("categoryIds", selectedCategoryId);
+    if (catId) params.append("categoryIds", catId);
 
     let finalLat = selectedLat;
     let finalLng = selectedLng;
@@ -337,7 +348,23 @@ const HeroSection2 = () => {
                   type="text"
                   placeholder="Book your services..."
                   value={serviceInput}
-                  onChange={(e) => setServiceInput(e.target.value)}
+                  onChange={(e) => {
+                    setServiceInput(e.target.value);
+                    if (selectedCategoryId) {
+                      const trimmed = e.target.value.toLowerCase().trim();
+                      const stillMatches = categoriesData?.categories?.find(
+                        (c: any) => c._id === selectedCategoryId && c.name?.toLowerCase().trim() === trimmed
+                      );
+                      if (!stillMatches) {
+                        setSelectedCategoryId("");
+                      }
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearch();
+                    }
+                  }}
                   onFocus={() => setIsServiceFocused(true)}
                   onBlur={() => setTimeout(() => setIsServiceFocused(false), 200)}
                   className="outline-none text-gray-800 placeholder-gray-400 text-sm w-full"
@@ -406,6 +433,11 @@ const HeroSection2 = () => {
                   placeholder="Neighbourhood, city or area…"
                   value={locationInput}
                   onChange={(e) => handleLocationInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearch();
+                    }
+                  }}
                   onFocus={() => setIsLocationFocused(true)}
                   onBlur={() => setTimeout(() => setIsLocationFocused(false), 200)}
                   className="outline-none text-gray-800 placeholder-gray-400 text-sm w-full"

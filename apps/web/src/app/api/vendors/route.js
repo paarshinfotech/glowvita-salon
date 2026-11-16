@@ -168,7 +168,7 @@ export const GET = async (request) => {
       serviceCategoryIdsFromNames = [],
     } = offerResult || {};
 
-    /* ── Parse categoryIds ─────────────────────────────────────────────── */
+    /* ── Parse categoryIds & lookup by serviceName ─────────────────────── */
     const categoryIdsStr = searchParams.get("categoryIds");
     const categoryIds = categoryIdsStr
       ? categoryIdsStr
@@ -177,6 +177,26 @@ export const GET = async (request) => {
           .filter((id) => mongoose.Types.ObjectId.isValid(id))
           .map((id) => new mongoose.Types.ObjectId(id))
       : [];
+
+    let matchedCategoryIds = [];
+    if (serviceName) {
+      try {
+        const safeRegex = new RegExp(serviceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        const matchedCats = await CategoryModel.find({ name: safeRegex })
+          .select("_id")
+          .lean();
+        matchedCategoryIds = matchedCats.map((c) => c._id);
+      } catch (err) {
+        console.error("Error looking up categories for serviceName:", err);
+      }
+    }
+
+    const allCategoryIds = [
+      ...categoryIds,
+      ...matchedCategoryIds.filter(
+        (id) => !categoryIds.some((cid) => cid.toString() === id.toString())
+      ),
+    ];
 
     /* ── Aggregation Pipeline ──────────────────────────────────────────── */
     const pipeline = [];
@@ -215,37 +235,47 @@ export const GET = async (request) => {
     pipeline.push({ $match: vendorMatch });
     pipeline.push({ $unwind: "$services" });
 
+    const serviceSearchConditions = [];
+    if (allCategoryIds.length > 0) {
+      serviceSearchConditions.push({ "services.category": { $in: allCategoryIds } });
+    }
+    if (serviceName) {
+      const safeRegex = new RegExp(serviceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      serviceSearchConditions.push({ "services.name": safeRegex });
+      serviceSearchConditions.push({ "vendorData.businessName": safeRegex });
+    }
+
+    const matchAndConditions = [{ "services.status": "approved" }];
+
+    if (serviceSearchConditions.length > 0) {
+      matchAndConditions.push({ $or: serviceSearchConditions });
+    }
+
+    const offerOrConditions = [
+      ...(offerServices.length > 0
+        ? [{ "services._id": { $in: offerServices.map((id) => new mongoose.Types.ObjectId(id.toString())) } }]
+        : []),
+      ...(offerServiceCategories.length > 0
+        ? [{ "services.category": { $in: offerServiceCategories.map((id) => new mongoose.Types.ObjectId(id.toString())) } }]
+        : []),
+      ...(serviceCategoryIdsFromNames.length > 0
+        ? [{ "services.category": { $in: serviceCategoryIdsFromNames } }]
+        : []),
+      ...(offerSpecialties.length > 0
+        ? [{ "services.name": { $in: offerSpecialties.map((s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")) } }]
+        : []),
+    ];
+
+    if (offerOrConditions.length > 0) {
+      matchAndConditions.push({ $or: offerOrConditions });
+    }
+
+    if (mainSalonCategories.length > 0) {
+      matchAndConditions.push({ "vendorData.category": { $in: mainSalonCategories } });
+    }
+
     pipeline.push({
-      $match: {
-        "services.status": "approved",
-        ...(categoryIds.length > 0 && { "services.category": { $in: categoryIds } }),
-        ...(serviceName && {
-          $or: [
-            { "services.name":          { $regex: new RegExp(serviceName, "i") } },
-            { "vendorData.businessName": { $regex: new RegExp(serviceName, "i") } },
-          ],
-        }),
-        ...((offerServices.length > 0 || offerServiceCategories.length > 0 ||
-             serviceCategoryIdsFromNames.length > 0 || offerSpecialties.length > 0) && {
-          $or: [
-            ...(offerServices.length > 0
-              ? [{ "services._id": { $in: offerServices.map((id) => new mongoose.Types.ObjectId(id.toString())) } }]
-              : []),
-            ...(offerServiceCategories.length > 0
-              ? [{ "services.category": { $in: offerServiceCategories.map((id) => new mongoose.Types.ObjectId(id.toString())) } }]
-              : []),
-            ...(serviceCategoryIdsFromNames.length > 0
-              ? [{ "services.category": { $in: serviceCategoryIdsFromNames } }]
-              : []),
-            ...(offerSpecialties.length > 0
-              ? [{ "services.name": { $in: offerSpecialties.map((s) => new RegExp(s, "i")) } }]
-              : []),
-          ],
-        }),
-        ...(mainSalonCategories.length > 0 && {
-          "vendorData.category": { $in: mainSalonCategories },
-        }),
-      },
+      $match: matchAndConditions.length === 1 ? matchAndConditions[0] : { $and: matchAndConditions },
     });
 
     pipeline.push({

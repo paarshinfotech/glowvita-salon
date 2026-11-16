@@ -250,8 +250,20 @@ export const GlobalSearchBar = ({
   // ── Build search URL with lat/lng ────────────────────────────────────────────
   const handleSearch = () => {
     const params = new URLSearchParams();
+
+    let catId = selectedCategoryId;
+    if (!catId && serviceInput && categoriesData?.categories) {
+      const trimmed = serviceInput.toLowerCase().trim();
+      const matched = categoriesData.categories.find(
+        (c: any) => c.name?.toLowerCase().trim() === trimmed
+      );
+      if (matched) {
+        catId = matched._id;
+      }
+    }
+
     if (serviceInput) params.append("serviceName", serviceInput);
-    if (selectedCategoryId) params.append("categoryIds", selectedCategoryId);
+    if (catId) params.append("categoryIds", catId);
 
     const navigate = (lat?: number, lng?: number, label?: string) => {
       if (lat != null && lng != null) {
@@ -318,7 +330,23 @@ export const GlobalSearchBar = ({
               type="text"
               placeholder="Services, salons or categories"
               value={serviceInput}
-              onChange={(e) => setServiceInput(e.target.value)}
+              onChange={(e) => {
+                setServiceInput(e.target.value);
+                if (selectedCategoryId) {
+                  const trimmed = e.target.value.toLowerCase().trim();
+                  const stillMatches = categoriesData?.categories?.find(
+                    (c: any) => c._id === selectedCategoryId && c.name?.toLowerCase().trim() === trimmed
+                  );
+                  if (!stillMatches) {
+                    setSelectedCategoryId("");
+                  }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
               onFocus={() => setIsServiceFocused(true)}
               onBlur={() =>
                 setTimeout(() => setIsServiceFocused(false), 200)
@@ -470,6 +498,11 @@ export const GlobalSearchBar = ({
                 setSelectedLng(null);
                 if (!e.target.value.trim()) {
                   clearLocation();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
                 }
               }}
               onFocus={() => setIsLocationFocused(true)}
