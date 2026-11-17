@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Filter, RotateCcw, X } from "lucide-react";
 import { useGetPublicVendorsQuery, useGetLandingSalonsQuery } from "@repo/store/services/api";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -71,6 +71,9 @@ interface MultiSelectProps {
   onSelectionChange: (selected: string[]) => void;
   placeholder: string;
   label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -78,10 +81,30 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   selectedOptions,
   onSelectionChange,
   placeholder,
-  label
+  label,
+  isOpen,
+  onToggle,
+  onClose,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isOpen, onClose]);
+
+  // Reset search when closed
+  useEffect(() => {
+    if (!isOpen) setSearchTerm("");
+  }, [isOpen]);
 
   const filteredOptions = options.filter(option =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
@@ -100,11 +123,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" ref={containerRef}>
       <label className="text-xs text-gray-700 font-bold uppercase tracking-wider">{label}</label>
       <div
-        className={`mt-1 w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm transition-colors focus-visible:outline-none ${isOpen ? 'ring-1 ring-primary' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        className={`mt-1 w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm transition-colors focus-visible:outline-none cursor-pointer ${isOpen ? 'ring-1 ring-primary' : ''}`}
+        onClick={onToggle}
       >
         <div className="flex items-center justify-between h-full gap-2">
           <div className="flex-1 max-h-full overflow-y-auto pr-1 custom-scrollbar">
@@ -144,16 +167,14 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
               </button>
             )}
             <div className="ml-2 flex-shrink-0">
-              <img src="/images/caret-down 1.png" alt="arrow" className="w-3 h-3 object-contain" />
+              <img src="/images/caret-down 1.png" alt="arrow" className={`w-3 h-3 object-contain transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
           </div>
         </div>
       </div>
 
       {isOpen && (
-        <div
-          className="absolute z-50 mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto custom-scrollbar"
-        >
+        <div className="absolute z-50 mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto custom-scrollbar">
           <div className="p-2">
             <input
               type="text"
@@ -165,9 +186,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
               autoFocus
             />
           </div>
-          <div
-            className="max-h-40 overflow-auto custom-scrollbar"
-          >
+          <div className="max-h-40 overflow-auto custom-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map(option => (
                 <div
@@ -247,6 +266,15 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
 
+  // Track which dropdown is open — only one at a time
+  const [openDropdown, setOpenDropdown] = useState<"category" | "service" | "location" | null>(null);
+
+  const toggleDropdown = (name: "category" | "service" | "location") => {
+    setOpenDropdown(prev => (prev === name ? null : name));
+  };
+
+  const closeDropdown = () => setOpenDropdown(null);
+
   console.log("Vendors Data :", vendorsData);
 
   // Extract unique categories, services, and locations from vendors data
@@ -285,6 +313,7 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
     setServiceFilter([]);
     setRatingFilter("all");
     setLocationFilter([]);
+    setOpenDropdown(null);
   };
 
   // Transform vendor data to match the card structure
@@ -528,6 +557,9 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
                   onSelectionChange={setCategoryFilter}
                   placeholder="All Categories"
                   label="Category"
+                  isOpen={openDropdown === "category"}
+                  onToggle={() => toggleDropdown("category")}
+                  onClose={closeDropdown}
                 />
               </div>
 
@@ -539,6 +571,9 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
                   onSelectionChange={setServiceFilter}
                   placeholder="All Services"
                   label="Service"
+                  isOpen={openDropdown === "service"}
+                  onToggle={() => toggleDropdown("service")}
+                  onClose={closeDropdown}
                 />
               </div>
 
@@ -549,6 +584,7 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
                   <select
                     value={ratingFilter}
                     onChange={(e) => setRatingFilter(e.target.value)}
+                    onFocus={closeDropdown}
                     className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none appearance-none pr-8 text-gray-700 font-normal"
                   >
                     <option value="all">All Ratings</option>
@@ -569,6 +605,9 @@ const WhereToGo: React.FC<WhereToGoProps> = ({
                   onSelectionChange={setLocationFilter}
                   placeholder="All Locations"
                   label="Location"
+                  isOpen={openDropdown === "location"}
+                  onToggle={() => toggleDropdown("location")}
+                  onClose={closeDropdown}
                 />
               </div>
             </div>
