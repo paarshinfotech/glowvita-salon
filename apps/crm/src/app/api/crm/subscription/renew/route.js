@@ -8,7 +8,8 @@ import SubscriptionPlanModel from "@repo/lib/models/admin/SubscriptionPlan.model
 import { queueOrActivateSubscription } from "@repo/lib/utils/subscriptionSchedule";
 
 const getUserModel = (userType) => {
-  switch (userType) {
+  const type = (userType || '').toLowerCase();
+  switch (type) {
     case 'vendor':
     case 'staff':
       return VendorModel;
@@ -17,7 +18,7 @@ const getUserModel = (userType) => {
     case 'doctor':
       return DoctorModel;
     default:
-      throw new Error('Invalid user type');
+      return null;
   }
 };
 
@@ -26,8 +27,8 @@ export const POST = authMiddlewareCrm(async (req) => {
   try {
     await _db();
     const { planId, userType, amount } = await req.json();
-    const userId = req.user.userId || req.user._id;
-
+    // userId: support all JWT payload shapes
+    const userId = req.user.userId || req.user._id || req.user.vendorId;
 
     if (!planId) {
       return NextResponse.json({
@@ -36,8 +37,18 @@ export const POST = authMiddlewareCrm(async (req) => {
       }, { status: 400 });
     }
 
-    const UserModel = getUserModel(userType);
-    const user = await UserModel.findById(userId);
+    // Resolve user model — prefer request body userType, fallback to JWT role
+    const resolvedType = userType || req.user.role || 'vendor';
+    let user = null;
+    const UserModel = getUserModel(resolvedType);
+    if (UserModel) {
+      user = await UserModel.findById(userId);
+    }
+    // Fallback: sequential search across all models (mirrors admin behaviour)
+    if (!user) user = await VendorModel.findById(userId);
+    if (!user) user = await SupplierModel.findById(userId);
+    if (!user) user = await DoctorModel.findById(userId);
+
     if (!user) {
       return NextResponse.json({
         success: false,
@@ -57,19 +68,20 @@ export const POST = authMiddlewareCrm(async (req) => {
     const userRegion = user.regionId;
     if (!newPlan.regionId) {
       // Global plan: check if disabled for this region
-      if (newPlan.disabledRegions?.map(r => r.toString()).includes(userRegion?.toString())) {
+      if (userRegion && newPlan.disabledRegions?.map(r => r.toString()).includes(userRegion.toString())) {
         return NextResponse.json({ success: false, message: "Selected plan is not available for your region" }, { status: 400 });
       }
     } else {
-      // Regional plan: check if matches user's region
-      if (newPlan.regionId.toString() !== userRegion?.toString()) {
+      // Regional plan: only block if BOTH user and plan have regionId set AND they don't match.
+      // If the user has no regionId, allow (treat as global access — same as Admin panel behaviour).
+      if (userRegion && newPlan.regionId.toString() !== userRegion.toString()) {
         return NextResponse.json({ success: false, message: "Selected plan is not available for your region" }, { status: 400 });
       }
     }
 
     const subscriptionUpdate = queueOrActivateSubscription(user, newPlan);
 
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     // Check for referral credit — only fires if this is a paid plan and the referral is still Pending
     // (creditReferralBonus guards against double-credit internally using status check)

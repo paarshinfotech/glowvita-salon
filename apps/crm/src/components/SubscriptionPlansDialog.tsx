@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Star, Check, Zap, RefreshCw, CreditCard, Smartphone, Landmark } from 'lucide-react';
 import { cn } from "@repo/ui/cn";
 import { Button } from "@repo/ui/button";
@@ -70,7 +70,13 @@ export function SubscriptionPlansDialog({
   const dispatch = useDispatch();
   const { user } = useSelector(selectCrmAuth);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  // Keep a ref so Razorpay's async handler always reads the latest selected plan
+  // even after the dialog closes (open → false) or React batches a re-render.
+  const selectedPlanRef = useRef<SubscriptionPlan | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Sync ref whenever selectedPlan state changes
+  useEffect(() => { selectedPlanRef.current = selectedPlan; }, [selectedPlan]);
 
   const { data: plansResponse, isLoading: plansLoading } = useGetCrmSubscriptionPlansQuery(undefined, { skip: !open });
   const [changePlan, { isLoading: changingPlan }] = useChangePlanMutation();
@@ -99,12 +105,14 @@ export function SubscriptionPlansDialog({
   /* ─── Activate subscription in backend ───────────────────────────────── */
   const activateSubscription = useCallback(
     async (paymentId?: string, paymentOrderId?: string) => {
-      if (!selectedPlan) return;
+      // Always read from ref — survives dialog close / async Razorpay callback
+      const plan = selectedPlanRef.current;
+      if (!plan) return;
       try {
         const payload = {
-          planId: selectedPlan._id,
+          planId: plan._id,
           userType,
-          amount: selectedPlan.discountedPrice ?? selectedPlan.price,
+          amount: plan.discountedPrice ?? plan.price,
           ...(paymentId && { paymentId, paymentOrderId, paymentMethod: 'online' }),
         };
 
@@ -130,14 +138,15 @@ export function SubscriptionPlansDialog({
         toast.error(msg);
       }
     },
-    [selectedPlan, isExpired, userType, renewPlan, changePlan, dispatch, onOpenChange]
+    [isExpired, userType, renewPlan, changePlan, dispatch, onOpenChange]
   );
 
   /* ─── Main handler ───────────────────────────────────────────────────── */
   const handleConfirm = async () => {
-    if (!selectedPlan) return;
+    const plan = selectedPlanRef.current;
+    if (!plan) return;
 
-    const planAmount = selectedPlan.discountedPrice ?? selectedPlan.price;
+    const planAmount = plan.discountedPrice ?? plan.price;
 
     // Free plan — skip gateway
     if (planAmount <= 0) {
@@ -162,7 +171,7 @@ export function SubscriptionPlansDialog({
         body: JSON.stringify({
           amount: planAmount,
           currency: 'INR',
-          receipt: `sub_${selectedPlan._id}_${Date.now()}`,
+          receipt: `sub_${plan._id}_${Date.now()}`,
         }),
       });
 
@@ -182,7 +191,7 @@ export function SubscriptionPlansDialog({
           currency: 'INR',
           order_id: orderData.id,
           name: 'GlowVita CRM',
-          description: `${selectedPlan.name} – ${selectedPlan.duration} ${selectedPlan.durationType}`,
+          description: `${plan.name} – ${plan.duration} ${plan.durationType}`,
           image: 'https://glowvita.com/logo.png',
           theme: { color: '#7c3aed' },
           prefill: {
