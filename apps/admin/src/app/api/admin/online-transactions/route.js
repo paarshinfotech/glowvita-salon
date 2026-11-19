@@ -27,7 +27,7 @@ export const GET = authMiddlewareAdmin(async (req) => {
         const regionQuery = getRegionQuery(req.user, regionId && regionId !== 'all' ? regionId : null);
 
         if (page < 1) page = 1;
-        if (limit < 1 || limit > 100) limit = 10;
+        if (limit < 1 || limit > 1000) limit = 10;
 
         // Query for online payments
         const query = {

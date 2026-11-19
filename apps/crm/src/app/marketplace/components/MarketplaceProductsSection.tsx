@@ -15,7 +15,7 @@ interface Product {
   productName: string;
   price: number;
   salePrice?: number;
-  category: { name: string };
+  category?: string | { name: string; _id?: string };
   stock: number;
   vendorId: string;
   supplierName: string;
@@ -110,9 +110,9 @@ export const MarketplaceProductsSection = ({
                           </h3>
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="text-xs">
-                              {product.category.name}
+                              {typeof product.category === 'string' ? product.category : product.category?.name || 'Uncategorized'}
                             </Badge>
-                            {product.stock === 0 && (
+                            {(!product.stock || product.stock <= 0) && (
                               <Badge
                                 variant="destructive"
                                 className="text-xs bg-red-100 text-red-800 border-red-200"
@@ -151,10 +151,11 @@ export const MarketplaceProductsSection = ({
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!product.stock || product.stock <= 0) return;
                                 onBuyNow(product, e);
                               }}
                               className="h-7 px-3 text-xs"
-                              disabled={product.stock === 0}
+                              disabled={!product.stock || product.stock <= 0}
                             >
                               Buy Now
                             </Button>
@@ -163,10 +164,11 @@ export const MarketplaceProductsSection = ({
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!product.stock || product.stock <= 0) return;
                                 onQuickAddToCart(product, e);
                               }}
                               className="h-7 px-3 text-xs"
-                              disabled={product.stock === 0}
+                              disabled={!product.stock || product.stock <= 0}
                             >
                               <ShoppingCart className="h-3 w-3" />
                             </Button>

@@ -18,7 +18,7 @@ interface ProductCardProps {
     productName: string;
     price: number;
     salePrice?: number;
-    category: { name: string };
+    category?: string | { name: string; _id?: string };
     stock: number;
     vendorId: string;
     supplierName: string;
@@ -51,13 +51,26 @@ export function ProductCard({
     setProductImageSrc(getMarketplaceProductImage(product.productImage));
   }, [product.productImage]);
 
+  const isOutOfStock = !product.stock || product.stock <= 0;
+  const categoryName = typeof product.category === 'string' 
+    ? product.category 
+    : (product.category?.name || 'Uncategorized');
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
     onQuickAddToCart(product, e);
   };
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
     onBuyNow(product, e);
   };
 
@@ -89,8 +102,8 @@ export function ProductCard({
           onError={() => setProductImageSrc(MARKETPLACE_PRODUCT_PLACEHOLDER_IMAGE)}
         />
         
-        {/* Out of Stock Badge - only show when stock is 0 */}
-        {product.stock === 0 && (
+        {/* Out of Stock Badge */}
+        {isOutOfStock && (
           <div className="absolute top-2 left-2 text-xs">
             <Badge 
               variant="destructive"
@@ -125,7 +138,7 @@ export function ProductCard({
       
       <div className="p-3 flex flex-col flex-grow">
         <p className="text-xs font-bold text-primary mb-1">
-          {product.category.name}
+          {categoryName}
         </p>
         <h4 className="text-sm font-semibold flex-grow mb-2">
           {product.productName}
@@ -165,7 +178,7 @@ export function ProductCard({
               variant="outline"
               className="text-xs px-2"
               onClick={handleBuyNowClick}
-              disabled={product.stock === 0}
+              disabled={isOutOfStock}
             >
               Buy Now
             </Button>
@@ -175,7 +188,7 @@ export function ProductCard({
               variant="outline"
               className="w-fit text-xs px-2"
               onClick={handleAddToCart}
-              disabled={product.stock === 0}
+              disabled={isOutOfStock}
             >
               <ShoppingCart className="h-3 w-3" />
             </Button>

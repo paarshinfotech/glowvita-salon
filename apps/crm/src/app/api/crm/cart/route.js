@@ -36,6 +36,16 @@ export const POST = withSubscriptionCheck(async (req) => {
       return NextResponse.json({ success: false, message: 'Product ID, quantity, and price are required' }, { status: 400 });
     }
 
+    // Check product stock before adding
+    const ProductModel = (await import('@repo/lib/models/Vendor/Product.model')).default;
+    const product = await ProductModel.findById(item.productId).select('stock productName');
+    if (product && (product.stock === undefined || product.stock <= 0)) {
+      return NextResponse.json({ 
+        success: false, 
+        message: `${product.productName || 'This product'} is currently out of stock.` 
+      }, { status: 400 });
+    }
+
     // Use a single, efficient findOneAndUpdate operation
     const updatedCart = await CartModel.findOneAndUpdate(
       {

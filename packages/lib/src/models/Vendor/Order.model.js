@@ -34,6 +34,30 @@ const orderSchema = new mongoose.Schema({
   shippingAddress: { type: String, required: true },
   shippingCharge: { type: Number, default: 0 },
 
+  // Payment details
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+    default: 'pending',
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['online', 'cod'],
+    default: 'online',
+  },
+  paymentId: {
+    type: String,
+    default: null,
+  },
+  paymentOrderId: {
+    type: String,
+    default: null,
+  },
+  razorpayOrderId: {
+    type: String,
+    default: null,
+  },
+
   trackingNumber: { type: String },
   courier: { type: String },
   cancellationReason: { type: String, default: null },

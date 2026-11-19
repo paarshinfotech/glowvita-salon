@@ -47,7 +47,7 @@ type Product = {
   productName: string;
   price: number;
   salePrice?: number;
-  category: { name: string };
+  category?: string | { name: string; _id?: string };
   stock: number;
   vendorId: string;
   supplierName: string;
@@ -268,7 +268,7 @@ export default function MarketplacePage() {
     setCurrentPage(1);
   };
 
-  const handleViewDetails = (product: Product) => {
+  const handleViewDetails = (product: any) => {
     setSelectedProduct(product);
     setQuantity(1);
     setIsDetailModalOpen(true);
@@ -280,7 +280,11 @@ export default function MarketplacePage() {
     setIsSupplierModalOpen(true);
   };
 
-  const handleAddToCart = async (product: Product, qty: number) => {
+  const handleAddToCart = async (product: any, qty: number) => {
+    if (!product.stock || product.stock <= 0) {
+      toast.error("This product is currently out of stock.");
+      return;
+    }
     try {
       await addToCart({
         productId: product._id,
@@ -294,20 +298,28 @@ export default function MarketplacePage() {
       }).unwrap();
       toast.success(`${qty} x ${product.productName} added to cart.`);
       setIsDetailModalOpen(false);
-    } catch (error) {
-      toast.error("Failed to add to cart.");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to add to cart.");
     }
   };
 
-  const handleBuyNow = (product: Product) => {
+  const handleBuyNow = (product: any) => {
+    if (!product.stock || product.stock <= 0) {
+      toast.error("This product is currently out of stock.");
+      return;
+    }
     setSelectedProduct(product);
     setBuyNowQuantity(1);
     setShippingAddress(user?.address || '');
     setIsBuyNowModalOpen(true);
   };
 
-  const handleQuickAddToCart = async (product: Product, e: React.MouseEvent) => {
+  const handleQuickAddToCart = async (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!product.stock || product.stock <= 0) {
+      toast.error("This product is currently out of stock.");
+      return;
+    }
     try {
       await addToCart({
         productId: product._id,
@@ -320,8 +332,8 @@ export default function MarketplacePage() {
         minOrderValue: product.minOrderValue || 0,
       }).unwrap();
       toast.success(`${product.productName} added to cart!`);
-    } catch (error) {
-      toast.error("Failed to add to cart.");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to add to cart.");
     }
   };
 
@@ -331,6 +343,10 @@ export default function MarketplacePage() {
       return;
     }
     if (!selectedProduct) return;
+    if (!selectedProduct.stock || selectedProduct.stock <= 0) {
+      toast.error("This product is out of stock and cannot be purchased.");
+      return;
+    }
 
     const finalPrice = selectedProduct.salePrice || selectedProduct.price;
     const totalAmount = finalPrice * buyNowQuantity;

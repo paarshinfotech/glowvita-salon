@@ -703,6 +703,41 @@ export const glowvitaApi = createApi({
       },
       providesTags: ["Appointments"],
     }),
+
+    getAdminSubscriptionTransactions: builder.query({
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        if (params.page) queryParams.append("page", params.page);
+        if (params.limit) queryParams.append("limit", params.limit);
+        if (params.search) queryParams.append("search", params.search);
+        if (params.regionId && params.regionId !== 'all') queryParams.append("regionId", params.regionId);
+        if (params.userType && params.userType !== 'all') queryParams.append("userType", params.userType);
+        if (params.planType && params.planType !== 'all') queryParams.append("planType", params.planType);
+        const queryString = queryParams.toString();
+        return {
+          url: `/admin/subscription-transactions${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["Vendor", "Supplier"],
+    }),
+
+    getAdminProductTransactions: builder.query({
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        if (params.page) queryParams.append("page", params.page);
+        if (params.limit) queryParams.append("limit", params.limit);
+        if (params.search) queryParams.append("search", params.search);
+        if (params.regionId && params.regionId !== 'all') queryParams.append("regionId", params.regionId);
+        if (params.status && params.status !== 'all') queryParams.append("status", params.status);
+        const queryString = queryParams.toString();
+        return {
+          url: `/admin/product-transactions${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["CrmOrder"],
+    }),
     // Service Approval Endpoints
     getVendorServicesForApproval: builder.query({
       query: (params) => {
@@ -3697,6 +3732,8 @@ export const {
   useUpdateWithdrawalStatusMutation,
   useGetAdminTransactionsQuery,
   useGetAdminOnlineTransactionsQuery,
+  useGetAdminSubscriptionTransactionsQuery,
+  useGetAdminProductTransactionsQuery,
 
   // Admin Marketing Dashboard Hook
   useGetAdminMarketingDashboardQuery,

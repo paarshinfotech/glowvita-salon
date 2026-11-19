@@ -14,7 +14,7 @@ interface Product {
   productName: string;
   price: number;
   salePrice?: number;
-  category: { name: string };
+  category?: string | { name: string; _id?: string };
   stock: number;
   vendorId: string;
   supplierName: string;
@@ -55,6 +55,14 @@ export const ProductDetailModal = ({
 
   const finalPrice = product.salePrice || product.price;
   const hasDiscount = product.salePrice && product.price > product.salePrice;
+  const isOutOfStock = !product.stock || product.stock <= 0;
+
+  const getCategoryName = (category: any) => {
+    if (!category) return 'Uncategorized';
+    if (typeof category === 'string') return category;
+    if (typeof category === 'object' && category.name) return category.name;
+    return 'Uncategorized';
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -80,10 +88,10 @@ export const ProductDetailModal = ({
               {/* Stock Badge */}
               <div className="absolute top-3 left-3">
                 <Badge 
-                  variant={product.stock > 10 ? "secondary" : product.stock > 0 ? "outline" : "destructive"} 
+                  variant={isOutOfStock ? "destructive" : product.stock > 10 ? "secondary" : "outline"} 
                   className="rounded-full"
                 >
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                  {!isOutOfStock ? `${product.stock} in stock` : 'Out of stock'}
                 </Badge>
               </div>
               {/* Discount Badge */}
@@ -111,7 +119,9 @@ export const ProductDetailModal = ({
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{product.stock} units available</p>
+              <p className={`text-sm ${isOutOfStock ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+                {isOutOfStock ? 'Out of stock' : `${product.stock} units available`}
+              </p>
             </div>
 
             {/* Supplier */}
@@ -125,7 +135,7 @@ export const ProductDetailModal = ({
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Category</Label>
                 <Badge variant="outline" className="rounded-full text-xs">
-                  {product.category.name}
+                  {getCategoryName(product.category)}
                 </Badge>
               </div>
               <div>
@@ -152,37 +162,43 @@ export const ProductDetailModal = ({
             {/* Quantity Selector */}
             <div>
               <Label className="text-xs text-muted-foreground mb-2 block">Quantity</Label>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-9 w-9 rounded-none hover:bg-muted" 
-                    onClick={() => onQuantityChange(Math.max(1, quantity-1))}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <div className="w-16 h-9 flex items-center justify-center border-x border-border">
-                    <span className="text-sm font-semibold">{quantity}</span>
+              {!isOutOfStock ? (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-9 w-9 rounded-none hover:bg-muted" 
+                      onClick={() => onQuantityChange(Math.max(1, quantity-1))}
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <div className="w-16 h-9 flex items-center justify-center border-x border-border">
+                      <span className="text-sm font-semibold">{quantity}</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-9 w-9 rounded-none hover:bg-muted" 
+                      onClick={() => onQuantityChange(Math.min(product.stock, quantity+1))}
+                      disabled={quantity >= product.stock}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-9 w-9 rounded-none hover:bg-muted" 
-                    onClick={() => onQuantityChange(Math.min(product.stock, quantity+1))}
-                    disabled={quantity >= product.stock}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-primary">
+                      ₹{(finalPrice * quantity).toFixed(0)}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-lg font-bold text-primary">
-                    ₹{(finalPrice * quantity).toFixed(0)}
-                  </p>
+              ) : (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-medium">
+                  This product is currently out of stock and cannot be ordered.
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -190,19 +206,23 @@ export const ProductDetailModal = ({
               <Button 
                 variant="outline" 
                 className="flex-1 h-10 rounded-lg" 
-                onClick={() => onAddToCart(product, quantity)}
-                disabled={product.stock === 0 || isAddingToCart}
+                onClick={() => {
+                  if (isOutOfStock) return;
+                  onAddToCart(product, quantity);
+                }}
+                disabled={isOutOfStock || isAddingToCart}
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                {isOutOfStock ? 'Out of Stock' : isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </Button>
               <Button 
                 className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90" 
                 onClick={() => {
+                  if (isOutOfStock) return;
                   onClose();
                   onBuyNow(product);
                 }}
-                disabled={product.stock === 0}
+                disabled={isOutOfStock}
               >
                 <Zap className="mr-2 h-4 w-4" />
                 Buy Now

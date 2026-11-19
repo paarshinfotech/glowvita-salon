@@ -15,7 +15,7 @@ interface Product {
   productName: string;
   price: number;
   salePrice?: number;
-  category: { name: string };
+  category?: string | { name: string; _id?: string };
   stock: number;
   vendorId: string;
   supplierName: string;
@@ -549,7 +549,7 @@ export const BuyNowModal = ({
           </Button>
           <Button 
             onClick={onPlaceOrder} 
-            disabled={isCreatingOrder || !shippingAddress.trim()}
+            disabled={isCreatingOrder || !shippingAddress.trim() || !product || !product.stock || product.stock <= 0}
             className="flex-1 h-10 bg-primary hover:bg-primary/90"
           >
             {isCreatingOrder ? (

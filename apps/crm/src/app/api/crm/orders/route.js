@@ -52,7 +52,16 @@ export const GET = authMiddlewareCrm(async (req) => {
 export const POST = authMiddlewareCrm(async (req) => {
   try {
     const vendorId = req.user.userId;
-    let { items, supplierId, totalAmount, shippingAddress } = await req.json();
+    let { 
+      items, 
+      supplierId, 
+      totalAmount, 
+      shippingAddress,
+      paymentMethod,
+      paymentStatus,
+      paymentId,
+      paymentOrderId,
+    } = await req.json();
 
     if (!items || items.length === 0 || !supplierId || !totalAmount || !shippingAddress) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
@@ -103,6 +112,11 @@ export const POST = authMiddlewareCrm(async (req) => {
       shippingAddress,
       regionId: supplier?.regionId, // Inherit regionId from supplier
       status: 'Pending',
+      paymentMethod: paymentMethod || 'online',
+      paymentStatus: paymentStatus || (paymentMethod === 'cod' ? 'pending' : (paymentId ? 'completed' : 'pending')),
+      paymentId: paymentId || null,
+      paymentOrderId: paymentOrderId || null,
+      razorpayOrderId: paymentOrderId || null,
       statusHistory: [{ status: 'Pending', notes: 'Order placed by vendor.' }]
     });
 
