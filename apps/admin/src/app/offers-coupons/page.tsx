@@ -208,7 +208,7 @@ export default function OffersCouponsPage() {
       const matchesGender = (catName: string, gender: string) => {
         const nameLower = catName.toLowerCase();
         const genderLower = gender.toLowerCase();
-        
+
         // Helper to check if name is classified as Men
         const isMen = () => {
           if (nameLower.includes('men') && !nameLower.includes('women')) return true;
@@ -336,7 +336,7 @@ export default function OffersCouponsPage() {
 
   const filteredCoupons = useMemo(() => {
     if (!Array.isArray(couponsData)) return [];
-    
+
     let filtered = couponsData;
 
     // Status Filter
@@ -349,7 +349,7 @@ export default function OffersCouponsPage() {
       filtered = filtered.filter((coupon) => {
         // If coupon applies to all services (specialties list is empty or undefined)
         const isGlobalOffer = !coupon.applicableSpecialties || coupon.applicableSpecialties.length === 0;
-        
+
         // Show if it's global OR if it matches any of the selected service filters
         return isGlobalOffer || coupon.applicableSpecialties.some((s: string) => serviceFilters.includes(s));
       });
@@ -737,8 +737,46 @@ export default function OffersCouponsPage() {
                     </TableCell>
                     <TableCell>{coupon.startDate.split('T')[0]}</TableCell>
                     <TableCell>{coupon.expires ? coupon.expires.split('T')[0] : 'N/A'}</TableCell>
-                    <TableCell>{formatList(coupon.applicableSpecialties)}</TableCell>
-                    <TableCell>{formatList(coupon.applicableCategories)}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const items = coupon.applicableSpecialties || [];
+                        if (items.length === 0) return <span className="text-muted-foreground text-xs">All services</span>;
+                        const preview = items.slice(0, 2);
+                        const remaining = items.length - 2;
+                        return (
+                          <div className="max-w-[200px]">
+                            <div className="space-y-0.5">
+                              {preview.map((s: string, i: number) => (
+                                <div key={i} className="text-xs text-gray-700 leading-tight">{s}</div>
+                              ))}
+                            </div>
+                            {remaining > 0 && (
+                              <span className="text-xs text-blue-500 italic">...and {remaining} more</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const items = coupon.applicableCategories || [];
+                        if (items.length === 0) return <span className="text-muted-foreground text-xs">All categories</span>;
+                        const preview = items.slice(0, 2);
+                        const remaining = items.length - 2;
+                        return (
+                          <div className="max-w-[200px]">
+                            <div className="space-y-0.5">
+                              {preview.map((c: string, i: number) => (
+                                <div key={i} className="text-xs text-gray-700 leading-tight">{c}</div>
+                              ))}
+                            </div>
+                            {remaining > 0 && (
+                              <span className="text-xs text-blue-500 italic">...and {remaining} more</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       {coupon.offerImage ? (
                         <img
@@ -863,13 +901,33 @@ export default function OffersCouponsPage() {
                       <span className="font-semibold text-muted-foreground">Expires</span>
                       <span className="col-span-2">{couponData?.expires ? couponData.expires.split('T')[0] : 'N/A'}</span>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <span className="font-semibold text-muted-foreground">Specialties</span>
-                      <span className="col-span-2">{formatList(couponData?.applicableSpecialties)}</span>
+                    <div className="grid grid-cols-3 items-start gap-4">
+                      <span className="font-semibold text-muted-foreground pt-0.5">Specialties</span>
+                      <div className="col-span-2">
+                        {!couponData?.applicableSpecialties || couponData.applicableSpecialties.length === 0 ? (
+                          <span className="text-sm text-muted-foreground">All services</span>
+                        ) : (
+                          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1">
+                            {couponData.applicableSpecialties.map((s: string, i: number) => (
+                              <div key={i} className="text-sm text-gray-700 leading-snug">{s}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <span className="font-semibold text-muted-foreground">Categories</span>
-                      <span className="col-span-2">{formatList(couponData?.applicableCategories)}</span>
+                    <div className="grid grid-cols-3 items-start gap-4">
+                      <span className="font-semibold text-muted-foreground pt-0.5">Categories</span>
+                      <div className="col-span-2">
+                        {!couponData?.applicableCategories || couponData.applicableCategories.length === 0 ? (
+                          <span className="text-sm text-muted-foreground">All categories</span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {couponData.applicableCategories.map((c: string, i: number) => (
+                              <div key={i} className="text-sm text-gray-700 leading-snug">{c}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 items-center gap-4">
                       <span className="font-semibold text-muted-foreground">Image</span>
@@ -1055,8 +1113,8 @@ export default function OffersCouponsPage() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full justify-between">
                       <span className="truncate">
-                        {selectedSpecialties.length === 0 
-                          ? "Apply to all services" 
+                        {selectedSpecialties.length === 0
+                          ? "Apply to all services"
                           : `Selected ${selectedSpecialties.length} services`}
                       </span>
                       <ChevronDown className="h-4 w-4 opacity-50" />
