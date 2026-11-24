@@ -302,18 +302,21 @@ export default function MarketingPage() {
           </CardContent>
         </Card>
 
-        {/* Message Blast */}
-        <Link href="/marketing/message-blast">
-          <Card className="cursor-pointer hover:shadow-md transition-colors hover:border-slate-400 h-full">
+        {/* WhatsApp Message Blast — Coming Soon */}
+        <div className="relative h-full">
+          <Card className="cursor-not-allowed opacity-70 h-full select-none">
             <CardContent className="flex flex-col items-center justify-center p-8 text-center h-full">
-              <div className="bg-slate-100 p-4 rounded-full mb-4">
-                <MessageCircle className="h-8 w-8 text-slate-700" />
+              <div className="bg-green-100 p-4 rounded-full mb-4">
+                <MessageCircle className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Message Blast</h3>
-              <p className="text-sm text-muted-foreground">Send bulk SMS to your customers</p>
+              <h3 className="text-lg font-semibold mb-2">WhatsApp Message Blast</h3>
+              <p className="text-sm text-muted-foreground">Send bulk WhatsApp messages to your customers</p>
             </CardContent>
           </Card>
-        </Link>
+          <span className="absolute top-3 right-3 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide shadow-sm">
+            Coming Soon
+          </span>
+        </div>
       </div>
 
       {/* Ticket History Section */}
