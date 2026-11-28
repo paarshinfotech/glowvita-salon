@@ -154,7 +154,7 @@ export const GET = withSubscriptionCheck(async (req) => {
   // Compute stats
   const total = allNotifications.length;
   const pushSent = allNotifications.filter(n => n.channels.includes('Push')).length;
-  const smsSent = allNotifications.filter(n => n.channels.includes('SMS')).length;
+  const smsSent = allNotifications.filter(n => n.channels.includes('WhatsApp') || n.channels.includes('SMS')).length;
   const emailSent = allNotifications.filter(n => n.channels.includes('Email')).length;
 
   const targetCounts = allNotifications.reduce((acc, n) => {

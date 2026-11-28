@@ -49,9 +49,9 @@ const NotificationStatsCards = ({ stats }: NotificationStatsCardsProps) => {
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-secondary-foreground mb-1 dark:text-secondary-foreground">SMS Sent</p>
+              <p className="text-sm font-medium text-secondary-foreground mb-1 dark:text-secondary-foreground">WhatsApp Sent</p>
               <p className="text-2xl font-bold text-secondary-foreground dark:text-secondary-foreground">{stats.smsSent}</p>
-              <p className="text-xs text-secondary-foreground/70 mt-1 dark:text-secondary-foreground/70">Total SMS notifications</p>
+              <p className="text-xs text-secondary-foreground/70 mt-1 dark:text-secondary-foreground/70">Total WhatsApp notifications</p>
             </div>
             <div className="p-3 bg-primary/10 dark:bg-secondary/20 rounded-full transition-all duration-300 group-hover:bg-primary/20 dark:group-hover:bg-secondary/30">
               <MessageSquare className="h-6 w-6 text-secondary-foreground dark:text-secondary-foreground" />

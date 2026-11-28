@@ -4,6 +4,16 @@ import { useGetPublicAllOffersQuery } from '@repo/store/services/api';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useSalonFilter } from './SalonFilterContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@repo/ui/dialog';
+import { Button } from '@repo/ui/button';
+import { Sparkles, Copy, Check, Search, ArrowRight, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SimplifiedOffer {
   code: string;
@@ -26,6 +36,9 @@ const PortalTooltip = ({
 }) => {
   if (typeof document === 'undefined') return null;
 
+  const previewServices = services.slice(0, 3);
+  const remainingCount = services.length - 3;
+
   return createPortal(
     <div
       style={{
@@ -38,7 +51,7 @@ const PortalTooltip = ({
         borderColor: '#c8dff7',
         zIndex: 9999,
       }}
-      className="border rounded-xl shadow-xl p-3 w-fit pointer-events-none"
+      className="border rounded-xl shadow-xl p-3 w-fit max-w-[260px] pointer-events-none"
     >
       {/* Arrow at fixed offset pointing down on the left side of the tooltip */}
       <div
@@ -50,14 +63,19 @@ const PortalTooltip = ({
         style={{ borderTopColor: '#c8dff7' }}
       />
 
-      {services.length > 0 ? (
-        <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1.5">
-          {services.map((service, sIdx) => (
-            <div key={sIdx} className="flex items-center gap-1.5 text-sm text-black-800 whitespace-nowrap">
+      {previewServices.length > 0 ? (
+        <div className="space-y-1">
+          {previewServices.map((service, sIdx) => (
+            <div key={sIdx} className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-800 whitespace-nowrap">
               <span className="text-[#422A3C] font-bold leading-none">•</span>
-              <span>{service}</span>
+              <span className="font-medium truncate max-w-[210px]">{service}</span>
             </div>
           ))}
+          {remainingCount > 0 && (
+            <div className="text-[11px] font-semibold text-[#422A3C] pt-0.5 pl-3">
+              ... +{remainingCount} more
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-xs text-gray-500 italic">Applicable on all services</p>
@@ -67,7 +85,15 @@ const PortalTooltip = ({
   );
 };
 
-const OfferCircleItem = ({ offer, salonsUrl }: { offer: SimplifiedOffer; salonsUrl: string }) => {
+const OfferCircleItem = ({
+  offer,
+  salonsUrl,
+  onViewMore,
+}: {
+  offer: SimplifiedOffer;
+  salonsUrl: string;
+  onViewMore: (offer: SimplifiedOffer, salonsUrl: string) => void;
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipCoords, setTooltipCoords] = useState<{ left: number; top: number; } | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -152,6 +178,21 @@ const OfferCircleItem = ({ offer, salonsUrl }: { offer: SimplifiedOffer; salonsU
         )}
       </Link>
 
+      {/* View More pill button when there are more than 3 services */}
+      {services.length > 3 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onViewMore(offer, salonsUrl);
+          }}
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#422A3C] hover:text-[#252B42] bg-[#EBF3FD] hover:bg-[#dceafb] border border-[#c8dff7] px-2.5 py-0.5 rounded-full shadow-sm transition-all cursor-pointer"
+        >
+          +{services.length - 3} more
+        </button>
+      )}
+
       {/* Tooltip Portal: left edge = circle left, arrow points at the pill center */}
       {tooltipCoords && (
         <PortalTooltip
@@ -169,6 +210,21 @@ const OffersSection2 = () => {
   const user = useSelector((state: any) => state.userAuth?.user);
   const profileRegionId = user?.regionId || null;
   const activeRegionId = selectedRegionId || profileRegionId;
+
+  const [selectedOfferModal, setSelectedOfferModal] = useState<{
+    offer: SimplifiedOffer;
+    salonsUrl: string;
+  } | null>(null);
+  const [offerSearchTerm, setOfferSearchTerm] = useState('');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const handleCopyCode = (code: string) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Coupon code "${code}" copied!`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
 
   const { data: offersData, isLoading, error } = useGetPublicAllOffersQuery(
     activeRegionId ? { regionId: activeRegionId } : {}
@@ -272,6 +328,10 @@ const OffersSection2 = () => {
                     key={index}
                     offer={offer}
                     salonsUrl={salonsUrl}
+                    onViewMore={(selectedOffer, url) => {
+                      setOfferSearchTerm('');
+                      setSelectedOfferModal({ offer: selectedOffer, salonsUrl: url });
+                    }}
                   />
                 );
               })}
@@ -280,6 +340,169 @@ const OffersSection2 = () => {
         )}
 
       </div>
+
+      {/* Attractive Offer Details Modal */}
+      <Dialog
+        open={!!selectedOfferModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedOfferModal(null);
+            setOfferSearchTerm('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          {selectedOfferModal && (() => {
+            const { offer, salonsUrl } = selectedOfferModal;
+            const allServices = offer.services || [];
+            const filteredServices = offerSearchTerm.trim()
+              ? allServices.filter((s) =>
+                  s.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                )
+              : allServices;
+
+            return (
+              <div className="flex flex-col max-h-[85vh]">
+                {/* Hero Header */}
+                <div className="relative bg-gradient-to-br from-[#252B42] via-[#342a45] to-[#422A3C] text-white p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white/30 shadow-md flex-shrink-0 bg-white">
+                      <img
+                        src={offer.image}
+                        alt={offer.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+                          <Sparkles className="h-3 w-3" />
+                          Special Offer
+                        </span>
+                        {offer.validTill && (
+                          <span className="inline-flex items-center gap-1 bg-red-900/90 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+                            <Calendar className="h-3 w-3" />
+                            Valid till {offer.validTill}
+                          </span>
+                        )}
+                      </div>
+                      <DialogHeader className="text-left space-y-1">
+                        <DialogTitle className="text-xl font-bold text-white leading-tight">
+                          {offer.title}
+                        </DialogTitle>
+                        <DialogDescription className="text-white/80 text-xs sm:text-sm">
+                          {offer.salonName}
+                        </DialogDescription>
+                      </DialogHeader>
+                    </div>
+                    <div className="bg-green-600 text-white px-3 py-1.5 rounded-xl text-sm sm:text-base font-extrabold shadow-md flex-shrink-0">
+                      {offer.discount}
+                    </div>
+                  </div>
+
+                  {/* Copyable Promo Code Strip */}
+                  {offer.code && (
+                    <div className="mt-4 flex items-center justify-between gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2.5">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider text-white/70 font-semibold block">
+                          Promo Code
+                        </span>
+                        <span className="font-mono font-bold text-base tracking-wider text-white">
+                          {offer.code}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleCopyCode(offer.code)}
+                        className="gap-1.5 font-semibold shadow-sm"
+                      >
+                        {copiedCode === offer.code ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-green-600" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy Code
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* All Applicable Services */}
+                <div className="p-6 bg-background flex-1 overflow-hidden flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <h5 className="font-bold text-sm text-[#252B42]">
+                        Applicable Services
+                      </h5>
+                      <span className="bg-[#EBF3FD] text-[#422A3C] border border-[#c8dff7] text-xs font-bold px-2 py-0.5 rounded-full">
+                        {allServices.length}
+                      </span>
+                    </div>
+                    {allServices.length > 8 && (
+                      <div className="relative w-full sm:w-52">
+                        <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={offerSearchTerm}
+                          onChange={(e) => setOfferSearchTerm(e.target.value)}
+                          placeholder="Search services..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-input bg-muted/40 focus:bg-background focus:outline-none focus:ring-2 focus:ring-[#422A3C]/30 transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="overflow-y-auto pr-1 max-h-[280px]">
+                    {filteredServices.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {filteredServices.map((service, idx) => (
+                          <span
+                            key={service + idx}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#EBF3FD] text-[#252B42] border border-[#c8dff7]"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#422A3C] flex-shrink-0" />
+                            {service}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No matching services found for &ldquo;{offerSearchTerm}&rdquo;.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedOfferModal(null);
+                        setOfferSearchTerm('');
+                      }}
+                    >
+                      Close
+                    </Button>
+                    <Link href={salonsUrl}>
+                      <Button className="bg-[#422A3C] hover:bg-[#252B42] text-white gap-1.5">
+                        Browse Salons
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

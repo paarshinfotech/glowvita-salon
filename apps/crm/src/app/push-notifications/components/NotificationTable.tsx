@@ -64,7 +64,7 @@ const NotificationTable = ({
                     {notification.title}
                   </TableCell>
                   <TableCell className="min-w-[120px] max-w-[150px] truncate">
-                    {notification.channels.join(", ")}
+                    {notification.channels.map((c) => (c === "SMS" ? "WhatsApp" : c)).join(", ")}
                   </TableCell>
                   <TableCell className="min-w-[150px] max-w-[180px] truncate">
                     {getTargetDisplay(notification)}

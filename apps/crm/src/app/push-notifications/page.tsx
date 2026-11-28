@@ -332,12 +332,12 @@ export default function PushNotificationsPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="sms"
-                      checked={channels.includes("SMS")}
-                      onCheckedChange={(checked: boolean) => handleChannelChange("SMS", checked)}
+                      id="whatsapp"
+                      checked={channels.includes("WhatsApp") || channels.includes("SMS")}
+                      onCheckedChange={(checked: boolean) => handleChannelChange("WhatsApp", checked)}
                       disabled={modalType === "view"}
                     />
-                    <Label htmlFor="sms">SMS</Label>
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -487,7 +487,7 @@ export default function PushNotificationsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        
+
         {/* DELETE MODAL */}
         <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
           <DialogContent>

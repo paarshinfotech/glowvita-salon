@@ -12,6 +12,13 @@ import {
   CardDescription,
 } from "@repo/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@repo/ui/dialog";
+import {
   Tag,
   UserPlus,
   LayoutDashboard,
@@ -25,6 +32,10 @@ import {
   ArrowRight,
   Package,
   IndianRupee,
+  Copy,
+  Check,
+  Sparkles,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -71,6 +82,37 @@ function OverviewContent() {
   const [showAllOrders, setShowAllOrders] = useState(false);
   const [showAllOffers, setShowAllOffers] = useState(false);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [selectedOfferModal, setSelectedOfferModal] = useState<any>(null);
+  const [offerSearchTerm, setOfferSearchTerm] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const handleCopyCode = (code: string) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Coupon code "${code}" copied!`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const getUniqueOfferItems = (offer: any): string[] => {
+    const unique: string[] = [];
+    const seen = new Set<string>();
+    [
+      ...(offer?.applicableServices || []),
+      ...(offer?.applicableSpecialties || []),
+      ...(offer?.applicableCategories || []),
+    ].forEach((s: string) => {
+      if (s) {
+        const trimmed = s.trim();
+        const lower = trimmed.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          unique.push(trimmed);
+        }
+      }
+    });
+    return unique;
+  };
 
   useEffect(() => {
     if (isAuthenticated && user?._id) {
@@ -521,38 +563,47 @@ function OverviewContent() {
                     {/* Title + code row */}
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <h4 className="font-bold truncate text-base">{offer.title}</h4>
-                      <span className="bg-primary/10 text-primary text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border border-primary/20 leading-none flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(offer.code)}
+                        title="Copy coupon code"
+                        className="inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-primary/20 leading-none flex-shrink-0 transition-colors"
+                      >
                         {offer.code}
-                      </span>
+                        {copiedCode === offer.code ? (
+                          <Check className="h-2.5 w-2.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-2.5 w-2.5 opacity-70" />
+                        )}
+                      </button>
                     </div>
 
-                    {/* Applicable services — horizontal bullet list */}
+                    {/* Applicable services — show max 3 with ... and More button */}
                     {(() => {
-                      const uniqueServices: string[] = [];
-                      const seen = new Set<string>();
-                      [
-                        ...(offer.applicableServices || []),
-                        ...(offer.applicableSpecialties || []),
-                        ...(offer.applicableCategories || []),
-                      ].forEach((s: string) => {
-                        if (s) {
-                          const trimmed = s.trim();
-                          const lower = trimmed.toLowerCase();
-                          if (!seen.has(lower)) {
-                            seen.add(lower);
-                            uniqueServices.push(trimmed);
-                          }
-                        }
-                      });
+                      const uniqueServices = getUniqueOfferItems(offer);
+                      const previewServices = uniqueServices.slice(0, 3);
+                      const remainingCount = uniqueServices.length - 3;
 
                       return uniqueServices.length > 0 ? (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5">
-                          {uniqueServices.map((s: string, i: number) => (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                          {previewServices.map((s: string, i: number) => (
                             <span key={s + i} className="flex items-center gap-1 text-sm text-foreground">
                               <span className="text-primary font-bold leading-none">•</span>
                               <span className="font-semibold">{s}</span>
                             </span>
                           ))}
+                          {remainingCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOfferSearchTerm("");
+                                setSelectedOfferModal(offer);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 bg-white/80 hover:bg-white px-2 py-0.5 rounded-full border border-primary/25 shadow-sm transition-all cursor-pointer"
+                            >
+                              <span>... +{remainingCount} more</span>
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 mt-1.5">
@@ -749,6 +800,154 @@ function OverviewContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Attractive Offer Details Modal */}
+      <Dialog
+        open={!!selectedOfferModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedOfferModal(null);
+            setOfferSearchTerm("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-0 shadow-2xl rounded-2xl">
+          {selectedOfferModal && (() => {
+            const allItems = getUniqueOfferItems(selectedOfferModal);
+            const filteredItems = offerSearchTerm.trim()
+              ? allItems.filter((item) =>
+                  item.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                )
+              : allItems;
+
+            return (
+              <div className="flex flex-col max-h-[85vh]">
+                {/* Top Hero Banner */}
+                <div className="relative bg-gradient-to-br from-primary/95 via-primary to-primary/80 text-primary-foreground p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white/30 shadow-md flex-shrink-0 bg-white">
+                      <img
+                        src={selectedOfferModal.image}
+                        alt={selectedOfferModal.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full mb-1.5">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Special Offer</span>
+                      </div>
+                      <DialogHeader className="text-left space-y-1">
+                        <DialogTitle className="text-xl font-bold text-white leading-tight">
+                          {selectedOfferModal.title}
+                        </DialogTitle>
+                        <DialogDescription className="text-white/85 text-sm">
+                          {selectedOfferModal.description}
+                        </DialogDescription>
+                      </DialogHeader>
+                    </div>
+                    <div className="bg-white text-primary px-3 py-1.5 rounded-xl text-base font-extrabold shadow-md flex-shrink-0">
+                      {selectedOfferModal.discount}
+                    </div>
+                  </div>
+
+                  {/* Coupon Code Strip */}
+                  {selectedOfferModal.code && (
+                    <div className="mt-4 flex items-center justify-between gap-3 bg-white/15 backdrop-blur-sm border border-white/25 rounded-xl px-4 py-2.5">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider text-white/75 font-semibold block">
+                          Promo Code
+                        </span>
+                        <span className="font-mono font-bold text-base tracking-wider text-white">
+                          {selectedOfferModal.code}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleCopyCode(selectedOfferModal.code)}
+                        className="gap-1.5 font-semibold shadow-sm"
+                      >
+                        {copiedCode === selectedOfferModal.code ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-green-600" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy Code
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Applicable Services / Specialties List */}
+                <div className="p-6 bg-background flex-1 overflow-hidden flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <h5 className="font-bold text-sm text-foreground">
+                        Applicable Services &amp; Categories
+                      </h5>
+                      <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                        {allItems.length}
+                      </span>
+                    </div>
+                    {allItems.length > 8 && (
+                      <div className="relative w-full sm:w-52">
+                        <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={offerSearchTerm}
+                          onChange={(e) => setOfferSearchTerm(e.target.value)}
+                          placeholder="Search services..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-input bg-muted/40 focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="overflow-y-auto pr-1 max-h-[300px]">
+                    {filteredItems.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {filteredItems.map((item, index) => (
+                          <span
+                            key={item + index}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#EBF3FD] text-foreground border border-[#c8dff7] hover:border-primary/40 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No matching services found for &ldquo;{offerSearchTerm}&rdquo;.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedOfferModal(null);
+                        setOfferSearchTerm("");
+                      }}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
