@@ -19,7 +19,11 @@ import {
   LogOut,
   ChevronDown,
   Gift,
+  Instagram,
+  Linkedin,
+  Sparkles,
 } from "lucide-react";
+import { NEXT_PUBLIC_CRM_URL } from "@repo/config/config";
 import { cn } from "@repo/ui/cn";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppDispatch } from "@repo/store/hooks";
@@ -199,6 +203,57 @@ export function MarketingHeader({
             : "bg-background/80 backdrop-blur-lg border-b border-border/20"
         )}
       >
+        {/* Top Utility Bar */}
+        <div className="bg-[#422A3C] text-white text-xs sm:text-sm border-b border-white/10">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-4">
+            {/* Left: Tagline */}
+            <p className="hidden sm:flex items-center gap-2 text-white/95 font-medium truncate">
+              <Sparkles className="h-4 w-4 text-amber-300 flex-shrink-0" />
+              <span>Glowvita - Har Look Ka Perfect Address</span>
+            </p>
+            <p className="sm:hidden flex items-center gap-1.5 text-white/95 font-medium truncate text-xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 flex-shrink-0" />
+              <span>Glowvita - Har Look Ka Perfect Address</span>
+            </p>
+
+            {/* Right: For Business + Social Icons */}
+            <div className="flex items-center gap-3.5 sm:gap-4 flex-shrink-0 ml-auto">
+              <a
+                href={`${NEXT_PUBLIC_CRM_URL || "https://partners.glowvitasalon.com"}/login`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white font-semibold text-xs sm:text-sm px-3.5 py-1 rounded-full transition-colors whitespace-nowrap"
+              >
+                <span>For Business</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+
+              <span className="h-4 w-px bg-white/25" aria-hidden="true" />
+
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://www.instagram.com/glowvitasalon?igsh=MXNneTdjMHo4dzNwdA=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GlowVita Salon on Instagram"
+                  className="text-white/85 hover:text-white transition-colors"
+                >
+                  <Instagram className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://www.linkedin.com/company/glowvitasalon/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GlowVita Salon on LinkedIn"
+                  className="text-white/85 hover:text-white transition-colors"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between relative">
           <Link
             href="/"
