@@ -205,8 +205,16 @@ export default function RegionsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+        // Prevent accidental closing when clicking outside or pressing keys
+        if (!open) return;
+        setIsModalOpen(true);
+      }}>
+        <DialogContent 
+          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>{editingRegion ? "Edit Region" : "Add New Region"}</DialogTitle>
@@ -255,7 +263,7 @@ export default function RegionsPage() {
                     <li>Use the <strong>Search Bar</strong> on the map to find your city.</li>
                     <li>Click <strong>Draw Boundary</strong> to start.</li>
                     <li>Click points on the map to define the area.</li>
-                    <li>Double-click to close the polygon.</li>
+                    <li>Click the <strong>first point</strong>, double-click, or click <strong>Finish</strong> to close the boundary.</li>
                   </ul>
                 </div>
               </div>

@@ -21,10 +21,14 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
   const [isLoaded, setIsLoaded] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [pointsCount, setPointsCount] = useState(0);
   const [errorDetails, setErrorDetails] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  const finishDrawingRef = useRef<(() => void) | null>(null);
+  const cancelDrawingRef = useRef<(() => void) | null>(null);
 
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
@@ -256,6 +260,7 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
     if (!mapRef.current) return;
 
     setIsDrawing(true);
+    setPointsCount(0);
 
     // Clear existing polygon
     if (polygonRef.current) {
@@ -264,6 +269,9 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
     }
 
     const map = mapRef.current;
+    // Disable double-click zoom while drawing so double click finishes shape cleanly
+    map.setOptions({ disableDoubleClickZoom: true });
+
     const path: google.maps.LatLng[] = [];
     let polygon: google.maps.Polygon | null = null;
     let activePolyline: google.maps.Polyline | null = null;
@@ -275,21 +283,38 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
       if (!e.latLng) return;
 
       path.push(e.latLng);
+      setPointsCount(path.length);
+
+      const isFirstPoint = markers.length === 0;
 
       // Add marker
       const marker = new google.maps.Marker({
         position: e.latLng,
         map: map,
         draggable: false,
+        zIndex: isFirstPoint ? 9999 : 100,
+        title: isFirstPoint ? "Starting point — click here to close boundary" : undefined,
+        cursor: isFirstPoint ? "pointer" : "default",
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 6,
-          fillColor: "#2196F3",
+          scale: isFirstPoint ? 8 : 6,
+          fillColor: isFirstPoint ? "#10B981" : "#2196F3",
           fillOpacity: 1,
           strokeColor: "#fff",
           strokeWeight: 2,
         }
       });
+
+      // Clicking first marker closes the polygon loop (standard GIS UX)
+      if (isFirstPoint) {
+        marker.addListener('click', (ev: any) => {
+          if (ev?.stop) ev.stop();
+          if (path.length >= 3) {
+            finishDrawing();
+          }
+        });
+      }
+
       markers.push(marker);
 
       if (path.length === 1) {
@@ -299,6 +324,7 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
           strokeColor: "#2196F3",
           strokeWeight: 2,
           strokeOpacity: 0.7,
+          clickable: false, // Must not block map clicks
           map: map,
         });
       } else if (path.length === 2) {
@@ -314,6 +340,7 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
           fillOpacity: 0.3,
           strokeColor: "#2196F3",
           strokeWeight: 2,
+          clickable: false, // Must not block map clicks
           editable: false,
           draggable: false,
           map: map,
@@ -327,7 +354,22 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
     });
 
     const dblClickListener = map.addListener('dblclick', (e: google.maps.MapMouseEvent) => {
-      e.stop();
+      if (e?.stop) e.stop();
+      // Remove duplicate point often introduced by the two clicks of dblclick
+      if (path.length > 3) {
+        const last = path[path.length - 1];
+        const prev = path[path.length - 2];
+        if (last && prev) {
+          const latDiff = Math.abs(last.lat() - prev.lat());
+          const lngDiff = Math.abs(last.lng() - prev.lng());
+          if (latDiff < 0.0001 && lngDiff < 0.0001) {
+            path.pop();
+            const lastMarker = markers.pop();
+            if (lastMarker) lastMarker.setMap(null);
+            setPointsCount(path.length);
+          }
+        }
+      }
       finishDrawing();
     });
 
@@ -342,22 +384,31 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
     });
 
     const finishDrawing = () => {
+      map.setOptions({ disableDoubleClickZoom: false });
       setIsDrawing(false);
+      setPointsCount(0);
+      finishDrawingRef.current = null;
+      cancelDrawingRef.current = null;
 
       // Remove listeners
       google.maps.event.removeListener(clickListener);
       google.maps.event.removeListener(dblClickListener);
       google.maps.event.removeListener(mouseMoveListener);
+      document.removeEventListener('keydown', escapeHandler);
 
       // Clean up temporary elements
       if (activePolyline) {
         activePolyline.setMap(null);
+        activePolyline = null;
       }
       markers.forEach(m => m.setMap(null));
+      markers.length = 0;
 
-      if (path.length >= 3 && polygon) {
-        // Convert to editable polygon
-        polygon.setMap(null);
+      if (path.length >= 3) {
+        if (polygon) {
+          polygon.setMap(null);
+          polygon = null;
+        }
 
         const finalPolygon = new google.maps.Polygon({
           paths: path,
@@ -375,14 +426,41 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
         handlePolygonUpdate(finalPolygon);
       } else if (polygon) {
         polygon.setMap(null);
+        polygonRef.current = null;
       }
     };
+
+    const cancelDrawing = () => {
+      map.setOptions({ disableDoubleClickZoom: false });
+      setIsDrawing(false);
+      setPointsCount(0);
+      finishDrawingRef.current = null;
+      cancelDrawingRef.current = null;
+
+      google.maps.event.removeListener(clickListener);
+      google.maps.event.removeListener(dblClickListener);
+      google.maps.event.removeListener(mouseMoveListener);
+      document.removeEventListener('keydown', escapeHandler);
+
+      if (activePolyline) {
+        activePolyline.setMap(null);
+        activePolyline = null;
+      }
+      if (polygon) {
+        polygon.setMap(null);
+        polygon = null;
+      }
+      markers.forEach(m => m.setMap(null));
+      markers.length = 0;
+    };
+
+    finishDrawingRef.current = finishDrawing;
+    cancelDrawingRef.current = cancelDrawing;
 
     // Store escape key handler
     const escapeHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        finishDrawing();
-        document.removeEventListener('keydown', escapeHandler);
+        cancelDrawing();
       }
     };
     document.addEventListener('keydown', escapeHandler);
@@ -430,6 +508,7 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
   };
 
   const clearMap = () => {
+    mapRef.current?.setOptions({ disableDoubleClickZoom: false });
     if (polygonRef.current) {
       polygonRef.current.setMap(null);
       polygonRef.current = null;
@@ -447,6 +526,7 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
 
     onChange(null);
     setIsDrawing(false);
+    setPointsCount(0);
   };
 
   if (!apiKey) {
@@ -680,20 +760,44 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
 
       {/* Control Buttons */}
       {isLoaded && !authError && (
-        <div className="absolute top-3 right-3 flex gap-2 z-[100]">
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-[100]">
           {!polygonRef.current && !isDrawing && (
             <button
               type="button"
               onClick={startDrawing}
-              className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg shadow-lg text-sm font-semibold hover:opacity-90 transition-all hover:shadow-xl"
+              className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg shadow-lg text-sm font-semibold hover:opacity-90 transition-all hover:shadow-xl cursor-pointer"
             >
               ✏️ Draw Boundary
             </button>
           )}
 
           {isDrawing && (
-            <div className="bg-primary text-primary-foreground px-4 py-2.5 rounded-lg shadow-lg text-sm font-semibold animate-pulse">
-              👆 Click to add points • Double-click to finish
+            <div className="flex items-center gap-2">
+              <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-semibold">
+                {pointsCount === 0
+                  ? "Click map to start"
+                  : `${pointsCount} point${pointsCount > 1 ? "s" : ""} added`}
+              </div>
+              <button
+                type="button"
+                onClick={() => finishDrawingRef.current?.()}
+                disabled={pointsCount < 3}
+                className={`px-3 py-2 rounded-lg shadow-lg text-xs font-bold transition-all ${
+                  pointsCount >= 3
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
+                title={pointsCount < 3 ? "Click at least 3 points on map" : "Click to finish boundary"}
+              >
+                ✓ Finish Boundary
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelDrawingRef.current?.()}
+                className="bg-white text-destructive hover:bg-red-50 border border-destructive/30 px-3 py-2 rounded-lg shadow-lg text-xs font-bold transition-all cursor-pointer"
+              >
+                ✕ Cancel
+              </button>
             </div>
           )}
 
@@ -702,14 +806,14 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
               <button
                 type="button"
                 onClick={startDrawing}
-                className="bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-lg text-sm font-semibold hover:opacity-90 transition-all"
+                className="bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-lg text-sm font-semibold hover:opacity-90 transition-all cursor-pointer"
               >
                 ↻ Redraw
               </button>
               <button
                 type="button"
                 onClick={clearMap}
-                className="bg-white text-destructive px-3 py-2 rounded-lg shadow-lg text-sm font-semibold border-2 border-destructive/20 hover:bg-destructive/5 transition-all"
+                className="bg-white text-destructive px-3 py-2 rounded-lg shadow-lg text-sm font-semibold border-2 border-destructive/20 hover:bg-destructive/5 transition-all cursor-pointer"
               >
                 🗑️ Clear
               </button>
@@ -720,9 +824,9 @@ export default function RegionMapEditor({ initialGeometry, onChange }: RegionMap
 
       {/* Help Text */}
       {isLoaded && !authError && (
-        <div className="absolute bottom-3 left-3 bg-slate-900/90 text-white px-3 py-2 rounded-lg text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity max-w-xs backdrop-blur-sm border border-white/10 shadow-2xl">
+        <div className="absolute bottom-3 left-3 bg-slate-900/90 text-white px-3 py-2 rounded-lg text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity max-w-sm backdrop-blur-sm border border-white/10 shadow-2xl">
           {!polygonRef.current && !isDrawing && "💡 Click 'Draw Boundary' to start defining your region"}
-          {isDrawing && "🖱️ Click on the map to add points. Double-click or press ESC when done."}
+          {isDrawing && "🖱️ Click to add points. Click the first green point, double-click, or click 'Finish Boundary' when done."}
           {polygonRef.current && !isDrawing && "✨ Drag vertices to adjust boundaries or click 'Redraw' to start over"}
         </div>
       )}
